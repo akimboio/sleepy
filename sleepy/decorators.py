@@ -14,23 +14,16 @@ you must pass this parameter" etc.
 
 __author__ = "Adam Haney <adam.haney@retickr.com>"
 __license__ = "Copyright (c) 2011 retickr, LLC"
+__conf_file_location__ = "conf.json"
 
-
-from django.http import *
-from django.views.decorators.cache import never_cache
-import json
 import pycassa
 import MySQLdb
-import cgi
-import hashlib
-import sys
-import traceback
-import threading
+import MySQLdb.cursors
 import hotshot
-import os
 import time
-import conf
 import base64
+
+conf = json.load(open(__conf_file_location__))
 
 
 def RequiresAuthentication(fn):
@@ -85,17 +78,15 @@ def RequiresAuthentication(fn):
 
             # The authorization string didn't comply to the standard
             except:
-                return self.json_err("""The Authorization header that you """\
-                                     """passed does not comply with the """\
-                                     """RFC 1945 HTTP basic authentication """\
-                                     """standard """\
-                                     """(http://tools.ietf.org/html/rfc1945"""\
-                                     """) you passed """
-                                     """{0}""".format(auth_header))
+                return self.json_err(
+                    "The Authorization header that you passed does not comply"
+                    + "with the RFC 1945 HTTP basic authentication standard "
+                    + "(http://tools.ietf.org/html/rfc1945) you passed "
+                    + "{0}".format(auth_header))
 
         else:
-            return self.json_err("""You must provide a password or passhash"""\
-                                     """ parameter or use HTTP Basic Auth"""
+            return self.json_err(
+                "You must provide a password, passhash or use HTTP Basic Auth",
                                  'Authentication Error', error_code=401)
 
         # Get username there are several ways they could pass this information
@@ -124,22 +115,28 @@ def RequiresAuthentication(fn):
         # Get user information
         try:
             user = self.users_cf.get(self.username,
-                                     read_consistency_level=pycassa.ConsistencyLevel.QUORUM)
+                       read_consistency_level=pycassa.ConsistencyLevel.QUORUM)
         except pycassa.NotFoundException:
-            return self.json_err("This user, {0}, does not exist".format(self.username),
-                                 "Authentication Error", error_code=401)
+            return self.json_err("This user does not exist",
+                                 "Invalid Username", error_code=401)
 
         # Compare hashes
         if user["Authentication"]["PassHash"] != self.user_passhash:
-            return self.json_err('User credentials invalid', 'Authentication Error', error_code=401)
+            return self.json_err('Password Incorrect',
+                                 'Invalid Password',
+                                 error_code=401)
 
         self.user_id = int(user["Information"]["UserId"])
 
-        # Go ahead and store the user info, it reduces the number of requests to Cassandra
+        # Go ahead and store the user info, it reduces the number
+        # of requests to Cassandra
         self.user_info = user
 
-        # Store the last access time for every user so throttling functions can use this info
-        self.users_cf.insert(self.username, {"Information": {"LastApiRequest": str(time.time())}})
+        # Store the last access time for every user so throttling
+        # functions can use this info
+        self.users_cf.insert(self.username,
+                             {"Information":
+                                  {"LastApiRequest": str(time.time())}})
 
         return fn(self, request)
     return _check
@@ -147,19 +144,20 @@ def RequiresAuthentication(fn):
 
 def RequiresParameter(param):
     """
-    This is decorator that makes sure the function it wraps has received a given
-    parameter in the request.REQUEST object. If the wrapped function did not
-    receive this parameter it throws a django response containing an error
-    and bails out
+    This is decorator that makes sure the function it wraps has received a
+    given parameter in the request.REQUEST object. If the wrapped function
+    did not receive this parameter it throws a django response containing
+    an error and bails out
     """
     def _wrap(fn):
         def _check(self, request, *args, **kwargs):
-            if request.REQUEST.has_key(param):
+            if param in request.REQUEST:
                 request.REQUEST[param]
                 return fn(self, request)
             else:
-                return self.json_err("%s requests to %s should contain the %s paramater"
-                                     % (fn.__name__, 
+                return self.json_err("%s requests to %s should"\
+                                         " contain the %s paramater"
+                                     % (fn.__name__,
                                         self.__class__.__name__, param))
         return _check
     return _wrap
@@ -172,14 +170,10 @@ def RequiresMysqlConnection(fn):
     self.mysql_conn
     """
     def _connect(self, request, *args, **kwargs):
-        #try:
-        self.mysql_conn = MySQLdb.connect(host = conf.mysql.host,
-                                          user = conf.mysql.user,
-                                          passwd = conf.mysql.password,
-                                          db = conf.mysql.db)
-        #except:
-        #    return self.json_err("A database error occured, Error 102")
-
+        self.mysql_conn = MySQLdb.connect(host=conf["mysql"]["host"],
+                                          user=conf["mysql"]["user"],
+                                          passwd=conf["mysql"]["password"],
+                                          db=conf["mysql"]["db"])
         return fn(self, request)
     return _connect
 
@@ -194,9 +188,12 @@ def RequestsPerSecond(reqs):
         def _check(self, request, *args, **kwargs):
             # Temporarily Commented out so josh can test
             try:
-                if user["Information"]["LastApiRequest"] > (time.time() - (1000 / reqs)):
-                    return self.json_err("Users may only make api %d requests once a second")
-            # We only pass on this error because it's possible the user hasn't been throttled, yet
+                if user["Information"]["LastApiRequest"] \
+                        > (time.time() - (1000 / reqs)):
+                    return self.json_err("Users may only make api"\
+                                             " %d requests once a second")
+            # We only pass on this error because it's possible the user
+            # hasn't been throttled, yet
             except KeyError:
                 pass
 
@@ -205,32 +202,46 @@ def RequestsPerSecond(reqs):
     return _wrap
 
 
+def RequiresCassandraConnection(fn):
+    def _wrap(fn):
+        def _connect(self, request, *args, **kwargs):
+            keyspace = conf["cassandra"][["keyspace"]
+
+            self.cassandra_connection = pycassa.connect(
+                keyspace,
+                conf["cassandra"]["hosts"],
+                credentials=conf["cassandra"]["credentials"])
+
+            return fn(self, request)
+        return _connect
+    return _wrap
+
+
 def RequiresCassandraCf(cf, keyspace=None):
     """
-    This decorator requests a cassandra connection to a column family. If 
+    This decorator requests a cassandra connection to a column family. If
     this column family cannot be connected to it bails out and throws a django
     error
     """
     def _wrap(fn):
         def _connect(self, request, *args, **kwargs):
-            #try:
             if None == keyspace:
                 try:
-                    setattr(self, "%s_cf" % cf, pycassa.ColumnFamily(self.cass_pool, cf))
+                    setattr(self, "%s_cf" % cf,
+                            pycassa.ColumnFamily(self.cass_pool, cf))
                 except AttributeError:
-                    raise AttributeError("A default Cassandra Keyspace was not"\
-                                         " set in the base class or the pool"\
-                                         " was unable to connect, the object"\
-                                         " doesn't have the attribute"\
-                                         " self.cass_pool")
+                    raise AttributeError(
+                        "A default Cassandra Keyspace wasn't"\
+                            " set in the base class or the pool"\
+                            " was unable to connect, the object"\
+                            " doesn't have the attribute"\
+                            " self.cass_pool")
             else:
                 pool = pycassa.connect(keyspace,
-                                       conf.cassandra.hosts,
-                                       credentials=conf.cassandra.credentials)
+                                       conf["cassandra"]["hosts"],
+                                       credentials=conf["cassandra"]["credentials"])
                 setattr(self, "%s_cf" % cf, pycassa.ColumnFamily(pool, cf))
             return fn(self, request)
-            #except:
-            #    return self.json_err("Could not connect to database, Error 101, %s" % cf)
         return _connect
     return _wrap
 
@@ -238,7 +249,9 @@ def RequiresCassandraCf(cf, keyspace=None):
 def Profile(logfile):
     def _wrap(fn):
         def _inner(self, request, *args, **kwargs):
-            profiler = hotshot.Profile(logfile + "." + self.username + "." + str(time.time()))
+            profiler = hotshot.Profile(logfile + "." + \
+                                           self.username + "."\
+                                           + str(time.time()))
             ret = profiler.runcall(fn, self, request, *args, **kwargs)
             profiler.close()
             return ret
