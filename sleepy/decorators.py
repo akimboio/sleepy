@@ -14,7 +14,7 @@ you must pass this parameter" etc.
 
 __author__ = "Adam Haney <adam.haney@retickr.com>"
 __license__ = "Copyright (c) 2011 retickr, LLC"
-__conf_file_location__ = "conf.json"
+__conf_file_location__ = "./conf.json"
 
 import pycassa
 import MySQLdb
@@ -22,6 +22,7 @@ import MySQLdb.cursors
 import hotshot
 import time
 import base64
+import json
 
 conf = json.load(open(__conf_file_location__))
 
@@ -205,13 +206,12 @@ def RequestsPerSecond(reqs):
 def RequiresCassandraConnection(fn):
     def _wrap(fn):
         def _connect(self, request, *args, **kwargs):
-            keyspace = conf["cassandra"][["keyspace"]
-
+            keyspace = conf["cassandra"]["keyspace"]
+                                             
             self.cassandra_connection = pycassa.connect(
                 keyspace,
                 conf["cassandra"]["hosts"],
                 credentials=conf["cassandra"]["credentials"])
-
             return fn(self, request)
         return _connect
     return _wrap
