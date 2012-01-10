@@ -153,7 +153,9 @@ def RequiresParameter(param):
     def _wrap(fn):
         def _check(self, request, *args, **kwargs):
             if param in request.REQUEST:
-                request.REQUEST[param]
+                request.REQUEST[param] = unicode(
+                    request.REQUEST[param]).encode("utf-8")
+
                 return fn(self, request)
             else:
                 return self.json_err("%s requests to %s should"\
