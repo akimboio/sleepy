@@ -6,10 +6,10 @@ handle preconditions before functions are called. For example "in order to call
 this method the user should be authenticated", "in order to call this method
 you must pass this parameter" etc.
 
-@author: Adam Haney
-@organization: Retickr
-@contact: adam.haney@retickr.com
-@license: Copyright (c) 2011 retickr, LLC
+:author: Adam Haney
+:organization: Retickr
+:contact: adam.haney@retickr.com
+:license: Copyright (c) 2011 retickr, LLC
 """
 
 __author__ = "Adam Haney <adam.haney@retickr.com>"
@@ -19,7 +19,6 @@ __conf_file_location__ = "./conf.json"
 import pycassa
 import MySQLdb
 import MySQLdb.cursors
-import hotshot
 import time
 import base64
 import json
@@ -59,11 +58,15 @@ def RequiresAuthentication(fn):
         # Authorization or hash it from a password
         self.user_passhash = None
         header_username = None
+
         if "password" in request.REQUEST:
             self.user_passhash = self.hash(request.REQUEST["password"])
+
         elif "passhash" in request.REQUEST:
             self.user_passhash = request.REQUEST["passhash"]
+
         elif "HTTP_AUTHORIZATION" in request.META:
+
             # Attempt to parse the Authorization header
             try:
                 auth_header = request.META['HTTP_AUTHORIZATION']
@@ -78,7 +81,7 @@ def RequiresAuthentication(fn):
                 self.user_passhash = self.hash(password)
 
             # The authorization string didn't comply to the standard
-            except:
+            except KeyError:
                 return self.json_err(
                     "The Authorization header that you passed does not comply"
                     + "with the RFC 1945 HTTP basic authentication standard "
@@ -88,19 +91,25 @@ def RequiresAuthentication(fn):
         else:
             return self.json_err(
                 "You must provide a password, passhash or use HTTP Basic Auth",
-                                 'Authentication Error', error_code=401)
+                'Authentication Error',
+                error_code=401)
 
         # Get username there are several ways they could pass this information
         self.username = None
         if "username" in self.kwargs:
             self.username = self.kwargs["username"]
+
         elif "username" in request.REQUEST:
             self.username = str(request.REQUEST["username"])
+
         elif None != header_username:
             self.username = header_username
+
         else:
-            return self.json_err('You must provide a username parameter',
-                                 'Authentication Error', error_code=401)
+            return self.json_err(
+                'You must provide a username parameter',
+                'Authentication Error',
+                error_code=401)
 
         # If we've passed the username in two places make sure that they match
         if header_username != None and self.username != header_username:
@@ -135,9 +144,15 @@ def RequiresAuthentication(fn):
 
         # Store the last access time for every user so throttling
         # functions can use this info
-        self.users_cf.insert(self.username,
-                             {"Information":
-                                  {"LastApiRequest": str(time.time())}})
+        self.users_cf.insert(
+            self.username,
+            {
+                "Information":
+                    {
+                    "LastApiRequest": str(time.time())
+                    }
+                }
+            )
 
         return fn(self, request)
     return _check
@@ -153,15 +168,15 @@ def RequiresParameter(param):
     def _wrap(fn):
         def _check(self, request, *args, **kwargs):
             if param in request.REQUEST:
-#                request.REQUEST[param] = unicode(
-#                    request.REQUEST[param]).encode("utf-8")
-
                 return fn(self, request)
             else:
-                return self.json_err("%s requests to %s should"\
-                                         " contain the %s paramater"
-                                     % (fn.__name__,
-                                        self.__class__.__name__, param))
+                return self.json_err(
+                    "{0} reqs to {1} should contain the {2} parameter".format(
+                        fn.__name__,
+                        self.__class__.__name__,
+                        param
+                        )
+                    )
         return _check
     return _wrap
 
@@ -181,35 +196,10 @@ def RequiresMysqlConnection(fn):
     return _connect
 
 
-def RequestsPerSecond(reqs):
-    """
-    This decorator throttles the number of requests a user can make in a second
-    This is useful to prevent a ddos from an individual account or IP
-    @todo: not working
-    """
-    def _wrap(fn):
-        def _check(self, request, *args, **kwargs):
-            # Temporarily Commented out so josh can test
-            try:
-                if user["Information"]["LastApiRequest"] \
-                        > (time.time() - (1000 / reqs)):
-                    return self.json_err("Users may only make api"\
-                                             " %d requests once a second")
-            # We only pass on this error because it's possible the user
-            # hasn't been throttled, yet
-            except KeyError:
-                pass
-
-            return fn(self, request)
-        return _check
-    return _wrap
-
-
 def RequiresCassandraConnection(fn):
     def _wrap(fn):
         def _connect(self, request, *args, **kwargs):
             keyspace = conf["cassandra"]["keyspace"]
-                                             
             self.cassandra_connection = pycassa.connect(
                 keyspace,
                 conf["cassandra"]["hosts"],
@@ -239,31 +229,11 @@ def RequiresCassandraCf(cf, keyspace=None):
                             " doesn't have the attribute"\
                             " self.cass_pool")
             else:
-                pool = pycassa.connect(keyspace,
-                                       conf["cassandra"]["hosts"],
-                                       credentials=conf["cassandra"]["credentials"])
+                pool = pycassa.connect(
+                    keyspace,
+                    conf["cassandra"]["hosts"],
+                    credentials=conf["cassandra"]["credentials"])
                 setattr(self, "%s_cf" % cf, pycassa.ColumnFamily(pool, cf))
             return fn(self, request)
         return _connect
     return _wrap
-
-
-def Profile(logfile):
-    def _wrap(fn):
-        def _inner(self, request, *args, **kwargs):
-            profiler = hotshot.Profile(logfile + "." + \
-                                           self.username + "."\
-                                           + str(time.time()))
-            ret = profiler.runcall(fn, self, request, *args, **kwargs)
-            profiler.close()
-            return ret
-        return _inner
-    return _wrap
-
-
-# Defined Errors
-class API_ERRORS:
-    PARAMETER_ERROR = "Parameter Error"
-    AUTHENTICATION_ERROR = "Authentication Error"
-    THIRD_PARTY_ERROR = "Third Party Error"
-    OPERATION_NOT_ALLOWED = "Operation Not Allowed"

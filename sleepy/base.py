@@ -4,29 +4,21 @@ Sleepy
 A RESTful api framework built on top of Django that simplifies common RESTful
 idioms. Originally created at retickr.
 
-@author: Adam Haney
-@contact: adam.haney@retickr.com
-@license: (c) 2011 Retickr
+:author: Adam Haney
+:contact: adam.haney@retickr.com
+:license: (c) 2011 Retickr
 """
 
 __author__ = "Adam Haney"
 __license__ = "(c) 2011 Retickr"
 __conf_file_location__ = "conf.json"
 
-from django.http import *
-from django.views.decorators.cache import never_cache
+from django.http import HttpResponse, HttpResponseRedirect
 from collections import OrderedDict
 import json
 import pycassa
-import MySQLdb
-import cgi
-import hashlib
 import sys
 import traceback
-import threading
-import hotshot
-import os
-import time
 import copy
 import sleepy.helpers
 

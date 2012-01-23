@@ -1,18 +1,8 @@
-from django.http import *
+from django.http import HttpResponse
 from email.mime.text import MIMEText
 from string import Template
-from django.views.decorators.cache import never_cache
+import re
 import json
-import pycassa
-import MySQLdb
-import cgi
-import hashlib
-import sys
-import traceback
-import threading
-import hotshot
-import os
-import time
 import smtplib
 import datetime
 
@@ -29,8 +19,11 @@ def index(request, username=None, *args, **kwargs):
     except:
         methods = []
     return HttpResponse(json.dumps(
-            {'error': "Nonsupported method for resource",
-             '_methods': methods}, indent=2))
+            {
+                'error': "Nonsupported method for resource",
+                '_methods': methods
+                },
+            indent=2))
 
 
 def show_urls(urllist, depth=0):
@@ -83,7 +76,10 @@ def send_email(to_address,
                reply_to=None,
                template_dir="/srv/api-production/retickr/email_templates/",
                copyright_company="retickr",
-               company_mailing_address="attn: retickr 800 Market Street, suite 200 Chattanooga, TN 37402"):
+               company_mailing_address=None):
+    if company_mailing_address:
+        company_mailing_address = ("attn: retickr 800 Market Street,"
+                                   + " suite 200 Chattanooga, TN 37402")
     try:
         if template_file == None:
                 if banner == None:
