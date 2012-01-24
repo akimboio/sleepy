@@ -1,2 +1,2 @@
-REPOSITORY = sleepy
-REVIEWBOARD_URL = http://reviewboard.retickr.com
+REPOSITORY = "sleepy"
+REVIEWBOARD_URL = "http://reviewboard.retickr.com"
