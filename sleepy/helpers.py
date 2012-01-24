@@ -7,7 +7,6 @@ import smtplib
 import datetime
 
 
-# Useful Generic Functions
 def index(request, username=None, *args, **kwargs):
     """
     a convenience function, since no methods support root access this
