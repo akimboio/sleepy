@@ -10,8 +10,7 @@ idioms. Originally created at retickr.
 """
 
 __author__ = "Adam Haney"
-__license__ = "(c) 2011 Retickr"
-__conf_file_location__ = "conf.json"
+__license__ = "Copyright (c) 2011 Retickr"
 
 from django.http import HttpResponse, HttpResponseRedirect
 from collections import OrderedDict
@@ -21,8 +20,6 @@ import sys
 import traceback
 import copy
 import sleepy.helpers
-
-conf = json.load(open(__conf_file_location__))
 
 
 class Base:
@@ -56,17 +53,9 @@ class Base:
         self.response = HttpResponse(mimetype='application/json')
         self.kwargs = kwargs
         self.request = request
-        self.api_uri = "https://api.retickr.com"
 
-        # Cassandra connection information
-        if hasattr(self, 'column_family') and self.column_family != None:
-            self.cass_pool = pycassa.connect(
-                conf["cassandra"]["keyspace"],
-                conf["cassandra"]["hosts"],
-                credentials=conf["cassandra"]["credentials"])
+        self._pre_call_wrapper(request, *args, **kwargs)
 
-            setattr(self, "%s_cf" % self.column_family,
-                    pycassa.ColumnFamily(self.cass_pool, self.column_family))
         try:
             if request.method == 'GET' and hasattr(self, 'GET'):
                 self.result = self.GET(request)
@@ -119,6 +108,9 @@ class Base:
                                             error_code=500)
 
         return self.result
+
+    def _pre_call_wrapper(self, request, *args, **kwargs):
+        pass
 
     def __call__(self, request, *args, **kwargs):
         """

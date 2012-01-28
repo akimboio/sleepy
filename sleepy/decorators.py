@@ -17,11 +17,8 @@ __license__ = "Copyright (c) 2011 retickr, LLC"
 
 
 import pycassa
-import MySQLdb
-import MySQLdb.cursors
 import time
 import base64
-import json
 
 
 class RequiresAuthentication(object):
@@ -52,8 +49,8 @@ class RequiresAuthentication(object):
     """
     def __init__(self, request, *args, **kwargs):
         self.request = request
-        self.args = *args
-        self.kwargs = *kwargs
+        self.args = args
+        self.kwargs = kwargs
 
     def _authenticate(self, username, password):
         # Make sure we're connected to users_cf
@@ -94,79 +91,79 @@ class RequiresAuthentication(object):
                     }
                 }
             )
-        
 
     def __call__(self, fn):
-        request = self.request
-        *args = self.args
-        **kwargs = self.kwargs
+        def _check(self, fn):
+            request = self.request
+            args = self.args
+            kwargs = self.kwargs
 
-        # Get ther user_passhash, either as a parameter, from HTTP basic
-        # Authorization or hash it from a password
-        self.user_passhash = None
-        header_username = None
+            # Get ther user_passhash, either as a parameter, from HTTP basic
+            # Authorization or hash it from a password
+            self.user_passhash = None
+            header_username = None
 
-        if "password" in request.REQUEST:
-            self.user_passhash = self.hash(request.REQUEST["password"])
+            if "password" in request.REQUEST:
+                self.user_passhash = self.hash(request.REQUEST["password"])
 
-        elif "passhash" in request.REQUEST:
-            self.user_passhash = request.REQUEST["passhash"]
+            elif "passhash" in request.REQUEST:
+                self.user_passhash = request.REQUEST["passhash"]
 
-        elif "HTTP_AUTHORIZATION" in request.META:
+            elif "HTTP_AUTHORIZATION" in request.META:
 
-            # Attempt to parse the Authorization header
-            try:
-                auth_header = request.META['HTTP_AUTHORIZATION']
+                # Attempt to parse the Authorization header
+                try:
+                    auth_header = request.META['HTTP_AUTHORIZATION']
 
-                # Get the authorization token and base 64 decode it
-                auth_string = base64.b64decode(auth_header.split(' ')[1])
+                    # Get the authorization token and base 64 decode it
+                    auth_string = base64.b64decode(auth_header.split(' ')[1])
 
-                # Grab the username and password from the auth_string
-                password = auth_string.split(':')[1]
-                header_username = auth_string.split(':')[0]
+                    # Grab the username and password from the auth_string
+                    password = auth_string.split(':')[1]
+                    header_username = auth_string.split(':')[0]
 
-                self.user_passhash = self.hash(password)
+                    self.user_passhash = self.hash(password)
 
-            # The authorization string didn't comply to the standard
-            except KeyError:
+                # The authorization string didn't comply to the standard
+                except KeyError:
+                    return self.json_err(
+                        "The Authorization header that you passed does not comply"
+                        + "with the RFC 1945 HTTP basic authentication standard "
+                        + "(http://tools.ietf.org/html/rfc1945) you passed "
+                        + "{0}".format(auth_header))
+
+            else:
                 return self.json_err(
-                    "The Authorization header that you passed does not comply"
-                    + "with the RFC 1945 HTTP basic authentication standard "
-                    + "(http://tools.ietf.org/html/rfc1945) you passed "
-                    + "{0}".format(auth_header))
+                    "You must provide a password, passhash or use HTTP Basic Auth",
+                    'Authentication Error',
+                    error_code=401)
 
-        else:
-            return self.json_err(
-                "You must provide a password, passhash or use HTTP Basic Auth",
-                'Authentication Error',
-                error_code=401)
+            # Get username there are several ways they could pass this information
+            username = None
+            if "username" in self.kwargs:
+                username = self.kwargs["username"]
 
-        # Get username there are several ways they could pass this information
-        username = None
-        if "username" in self.kwargs:
-            username = self.kwargs["username"]
+            elif "username" in request.REQUEST:
+                username = str(request.REQUEST["username"])
 
-        elif "username" in request.REQUEST:
-            username = str(request.REQUEST["username"])
+            elif None != header_username:
+                username = header_username
 
-        elif None != header_username:
-            username = header_username
+            else:
+                return self.json_err(
+                    'You must provide a username parameter',
+                    'Authentication Error',
+                    error_code=401)
 
-        else:
-            return self.json_err(
-                'You must provide a username parameter',
-                'Authentication Error',
-                error_code=401)
+            # If we've passed the username in two places make sure that they match
+            if header_username != None and username != header_username:
+                return self.json_err(
+                    "You've passed the username in the HTTP Authorization"
+                        + " header and as a parameter they don't match",
+                    "Parameter Error")
 
-        # If we've passed the username in two places make sure that they match
-        if header_username != None and username != header_username:
-            return self.json_err(
-                "You've passed the username in the HTTP Authorization"
-                    + " header and as a parameter they don't match",
-                "Parameter Error")
-
-        return fn(self, request, *args, **kwargs)
-    return _check
+            return fn(self, request, *args, **kwargs)
+        return _check
 
 
 def RequiresParameter(param):
