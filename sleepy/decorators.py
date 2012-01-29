@@ -187,3 +187,33 @@ def RequiresParameter(param):
                     )
         return _check
     return _wrap
+
+def RequiresUrlAttribute(param):
+    """
+    This is a decorator that makes sure that a particular attribute in a url
+    pattern has been included for this given calling function. This seems
+    like a strange problem because Djanog can map urls matchign regexes
+    to specific functions, but in our case in Sleepy we map to
+    an object for a regular expressiona and we might be more liberal
+    in what we accept for a GET call than a POST cal for example
+    there might be two regular expressions that point to an endpoin
+    /endpoint and /endpoint/(P.*)<entity> and we might require that
+    post refers to a given entitity. This is a convenience decorator for
+    doing that which hopefully eliminates the length of methods
+    """
+    def _wrap(fn):
+        def _check(self, request, *args, **kwargs):
+            if param in self.kwargs:
+                return fn(self, request)
+            else:
+                return self.json_err(
+                    "{0} requests to {1} should contain {2} in the url".format(
+                        fn.__name__,
+                        self.__class__.__name__,
+                        param
+                        )
+                    )
+            return _check
+        return _wrap
+                        
+                    
