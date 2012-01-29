@@ -31,19 +31,11 @@ class Base:
     thrown. It also makes an initial Cassandra connection and provides
     the functions used to output django responses in json format.
     """
+
     def __init__(self):
         pass
 
-    def __format_traceback(self, traceback):
-        html_string = ""
-        for k in traceback.keys():
-            html_string += "<h2>{0}</h2>\n<ul>".format(k)
-            for elm in traceback[k]:
-                html_string += "<li>{0}</li>".format(elm)
-            html_string += "</ul>"
-        return html_string
-
-    def __call_wrapper(self, request, *args, **kwargs):
+    def _call_wrapper(self, request, *args, **kwargs):
         """
         A child class will implement the GET, PUT, POST and DELETE methods
         this method simply creates an initial Cassandra connection (as defined
@@ -56,56 +48,32 @@ class Base:
 
         self._pre_call_wrapper(request, *args, **kwargs)
 
-        try:
-            if request.method == 'GET' and hasattr(self, 'GET'):
-                self.result = self.GET(request)
-            elif request.method == 'POST' and hasattr(self, 'POST'):
-                self.result = self.POST(request)
-            elif request.method == 'PUT' and hasattr(self, 'PUT'):
-                self.result = self.PUT(request)
-            elif request.method == 'DELETE' and hasattr(self, 'DELETE'):
-                self.result = self.DELETE(request)
+        if request.method == 'GET' and hasattr(self, 'GET'):
+            self.result = self.GET(request)
+        elif request.method == 'POST' and hasattr(self, 'POST'):
+            self.result = self.POST(request)
+        elif request.method == 'PUT' and hasattr(self, 'PUT'):
+            self.result = self.PUT(request)
+        elif request.method == 'DELETE' and hasattr(self, 'DELETE'):
+            self.result = self.DELETE(request)
+
+        elif (
+            request.method == 'HEAD'
+            and (
+                hasattr(self, 'GET') or hasattr(self, 'HEAD')
+                )
+            ):
+            if hasattr(self, 'HEAD'):
+                self.result = self.HEAD(request)
             else:
-                self.response.response_code = 405
-                self.result = self.json_err(
-                    "Resource does not support {0} for this method".format(
-                        request.method))
-        except:
-            # Build traceback object
-            tb = [sys.exc_info()[0].__name__ + " " + str(sys.exc_info()[1])]
-            for elm in traceback.extract_tb(sys.exc_info()[2]):
-                tb.append(elm[0] + " in "
-                          + elm[2] + ": "
-                          + str(elm[1])
-                          + ". " + str(elm[3]))
-            trace = OrderedDict()
-            trace['uri'] = [request.path]
-            trace['traceback'] = tb
-            trace['get'] = {str(k): str(request.GET[k]) for k in request.GET }
-            trace['post'] = {str(k): str(request.GET[k]) for k in request.POST}
-            trace['files'] = request.FILES.keys()
-            trace['globals'] = {str(k): str(v) for k, v in globals().items()}
-            trace['locals'] = {str(k): str(v) for k, v in locals().items()}
-            trace['path'] = sys.path
-
-            # If the user passes "chucknorris" then we show them the full trace
-            if "chucknorris" in request.REQUEST:
-                self.result = self.json_out(
-                    {'response': trace},
-                    indent=1,
-                    status_code=500)
-
-            # Otherwise send an email
-            else:
-                traceback.print_tb(sys.exc_info()[2])
-                sleepy.helpers.send_email(
-                        "support@retickr.com",
-                        "api@retickr.com",
-                        "API Error {0}".format(self.__class__.__name__),
-                        self.__format_traceback(trace))
-
-                self.result = self.json_err("An unexpected error occured",
-                                            error_code=500)
+                get_result = self.GET(request)
+                for k, v in get_result:
+                    self.result[k] = get_result[k]
+        else:
+            self.response.response_code = 405
+            self.result = self.json_err(
+                "Resource does not support {0} for this method".format(
+                    request.method))
 
         return self.result
 
@@ -127,7 +95,7 @@ class Base:
         leaks. I hate you, mod_wsgi
         """
         cp = copy.deepcopy(self)
-        return cp.__call_wrapper(request, *args, **kwargs)
+        return cp._call_wrapper(request, *args, **kwargs)
 
     def json_err(self,
                  error,
@@ -220,3 +188,55 @@ class Base:
 
     def redirect_out(self, url):
         return HttpResponseRedirect(url)
+
+class BaseServerError(Base):
+    def __format_traceback(self, traceback):
+        html_string = ""
+        for k in traceback.keys():
+            html_string += "<h2>{0}</h2>\n<ul>".format(k)
+            for elm in traceback[k]:
+                html_string += "<li>{0}</li>".format(elm)
+            html_string += "</ul>"
+        return html_string
+
+
+    def _call_wrapper(self, request):
+        self.response = HttpResponse(mimetype='application/json')
+        self.kwargs = kwargs
+        self.request = request
+
+        # Build traceback object
+        tb = [sys.exc_info()[0].__name__ + " " + str(sys.exc_info()[1])]
+        for elm in traceback.extract_tb(sys.exc_info()[2]):
+            tb.append(elm[0] + " in "
+                      + elm[2] + ": "
+                      + str(elm[1])
+                      + ". " + str(elm[3]))
+        trace = OrderedDict()
+        trace['uri'] = [request.path]
+        trace['traceback'] = tb
+        trace['get'] = {str(k): str(request.GET[k]) for k in request.GET }
+        trace['post'] = {str(k): str(request.GET[k]) for k in request.POST}
+        trace['files'] = request.FILES.keys()
+        trace['globals'] = {str(k): str(v) for k, v in globals().items()}
+        trace['locals'] = {str(k): str(v) for k, v in locals().items()}
+        trace['path'] = sys.path
+
+        # If the user passes "chucknorris" then we show them the full trace
+        if "chucknorris" in request.REQUEST:
+            self.result = self.json_out(
+                {'response': trace},
+                indent=1,
+                status_code=500)
+
+        # Otherwise send an email
+        else:
+            traceback.print_tb(sys.exc_info()[2])
+            sleepy.helpers.send_email(
+                    "support@retickr.com",
+                    "api@retickr.com",
+                    "API Error {0}".format(self.__class__.__name__),
+                    self.__format_traceback(trace))
+
+            self.result = self.json_err("An unexpected error occured",
+                                        error_code=500)
