@@ -188,6 +188,7 @@ def RequiresParameter(param):
         return _check
     return _wrap
 
+
 def RequiresUrlAttribute(param):
     """
     This is a decorator that makes sure that a particular attribute in a url
@@ -213,7 +214,7 @@ def RequiresUrlAttribute(param):
                         param
                         )
                     )
-            return _check
-        return _wrap
+        return _check
+    return _wrap
                         
                     
