@@ -1,3 +1,19 @@
+Changes in Version 0.9.1
+
+  This version is primarily about updating documentation and cleaning
+  a few things up. It introduces more parameters for redirect_out
+  which will allow for some shorter code in apis that ouput
+  urls.
+
+  Features
+
+  * Introduced the meta_info, url_key_name and status_code
+    parameters for the redirect_out call. Also, the
+    redirect_out call now ouputs JSON with the 302 response
+    so if the client doesn't adhere to the response code
+    properly it will still display the url that it would
+    have redirected to.
+
 Changes in Version 0.9.0
 
   Sleepy has been floating around for a long time within retickr as

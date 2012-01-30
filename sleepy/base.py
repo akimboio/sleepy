@@ -28,8 +28,8 @@ class Base:
     like object handles the scaffolding of __call__ requests to make
     sure if a GET, POST, PUT or DELETE request is made that it is
     routed to the appropriate method in a child class or an error is
-    thrown. It also makes an initial Cassandra connection and provides
-    the functions used to output django responses in json format.
+    thrown. It also provides the functions used to output django
+    responses in json format.
     """
 
     def __init__(self):
@@ -38,9 +38,8 @@ class Base:
     def _call_wrapper(self, request, *args, **kwargs):
         """
         A child class will implement the GET, PUT, POST and DELETE methods
-        this method simply creates an initial Cassandra connection (as defined
-        by a child class' constructor and does error handling to make sure
-        the HTTP request type is suppored by the child class
+        This simply handles routing for the request types and in the case
+        of HEAD requests suppliments implemented GET requests
         """
         self.response = HttpResponse(mimetype='application/json')
         self.kwargs = kwargs
@@ -106,9 +105,11 @@ class Base:
         Takes a string which describes the error that occured and returns a
         django object containing a json_encoded error message
 
-        @param error: a string describing the error that occured
-        @param error_code: the http response code that will be passed,
-            default is 400
+        :Parameters:
+        error : string
+          a string describing the error that occured
+        error_code : string
+          the http response code that will be passed, default is 400
         """
 
         if None == meta_data:
@@ -142,25 +143,28 @@ class Base:
         OrderedDict, etc) as an argument and returns a django response
         containing a json encoded string of the data structure.
 
-        @param data: A data structure (typically a list, dict or OrderedDict)
+        :Parameters:
+          data: mixed
+            A data structure (typically a list, dict or OrderedDict)
             to output as JSON
-        @param meta_data: An additional data structure at the same
-            level as data that would be used to display information
-            that isn't 'data'
-        @param cgi_escape: Whether or not to cgi escape the resulting
+          meta_data : mixed
+            An additional data structure at the same level as data
+            that would be used to display information that isn't
+            'data'
+          cgi_escape : boolean
+            Whether or not to cgi escape the resulting
             response object
+          indent : boolean
+            The ammount of whitespace to indent for each level of json
+          status_code : integer
+            The HTTP response code to pass back for the response
         """
         if None == meta_data:
             meta_data = {}
 
-        # CGI escape if neccassary
         response = {'data': data}
+        response.update(meta_data)
 
-        # Add meta data if applicable
-        if len(meta_data) > 0:
-            response.update(meta_data)
-
-        # build JSON string
         if "debug" in self.request.REQUEST:
             indent = 2
 
@@ -177,6 +181,18 @@ class Base:
         return self.response
 
     def blob_out(self, data, content_type):
+        """
+        blob_out takes a bytestring with blob conten
+        and a content_type and returns the blob
+        object as an HttpResponse
+
+        :Parameters:
+          data : string
+            A byte string of the binary data we wish to output
+          content_type : string
+            A string describing the MIME type of the binary object
+        """
+         
         response = HttpResponse(
             data,
             mimetype=content_type,
@@ -186,8 +202,50 @@ class Base:
         response["Content-Length"] = len(data)
         return response
 
-    def redirect_out(self, url):
-        return HttpResponseRedirect(url)
+    def redirect_out(self, url, meta_info=None, url_key_name="url", status_code=302):
+        """
+        Outputs an HTTP 302 redirect response to a given url with
+        optional contents. This can be handy so if we want to redirect
+        a user to a given url but the programmer wants to get the
+        redirect url as a string they can take advantage of the
+        suppress_response_codes parameter and get a datastructure
+        with a url.
+
+        :Paramters:
+          url : string
+            The url we wish to redirect to.
+          meta_info : mixed
+            A datastructure for meta data that will be passed back
+          url_key_name : string
+            This is included only for backwards compatibility on
+            some of retickr's apis. In general unless you have a
+            good reason the key name for the url string that
+            is passed back will be url, but if you MUST change
+            it you may do so here.
+          status_code : integer
+            Allows us ot override the response code for this method.
+            301 and 302 are valid response codes for a redirect but
+            if you shove something else in this method won't complain
+            NOTE: if the requst passes suppress_response_codes this
+            parameter will be ignored
+        """
+
+        if not meta_info:
+            meta_info = {}
+
+        response = {"data": url_key_name: url}
+        response.update(meta_info)
+
+        json_string = json.dumps(response)
+
+        if not "suppress_response_codes" in self.request.REQUEST:
+            response = HttpResponseRedirect(url)
+        else:
+            response = HttpResponse()
+
+        response.write(json_string)
+
+        return response
 
 class BaseServerError(Base):
     def __format_traceback(self, traceback):
