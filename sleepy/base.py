@@ -233,7 +233,7 @@ class Base:
         if not meta_info:
             meta_info = {}
 
-        response = {"data": url_key_name: url}
+        response = {"data": {url_key_name: url}}
         response.update(meta_info)
 
         json_string = json.dumps(response)
