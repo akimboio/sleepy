@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name = "Sleepy",
-    version = "0.8.9",
+    version = "0.9.0",
     author = "Adam Haney",
     author_email = "adam.haney@retickr.com",
     description = ("""A RESTful library that is used at retickr on top"""\

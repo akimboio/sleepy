@@ -23,7 +23,8 @@ import base64
 
 class RequiresAuthentication(object):
     """
-    Requires Authentication
+
+    :Requires Authentication:
 
     This decorator checks Cassandra for the
     users["<username>"]["Authentication"]["PassHash"] value it then compares
@@ -35,7 +36,6 @@ class RequiresAuthentication(object):
 
 
     Authentication Methods
-    ----------------------
 
     Currently it supports 3 different methods of
     authentication. A user may either pass their username as a GET, POST or PUT

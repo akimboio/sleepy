@@ -1,0 +1,19 @@
+Changes in Version 0.9.0
+
+  Sleepy has been floating around for a long time within retickr as
+  the basis for our RESTful apis. We are just now formalizing the
+  release process now that we have several apis to in sync with
+  different sleepy versions. This is the version of sleepy which we
+  plan to release on launch day for the mynews api.
+
+
+  Features
+
+  * A new decorator RequiresUrlAttribute for checking that a
+    particular element was matched in the url pattern for a given
+    function. This is helpfule for sleepy objects that have multiple
+    http type methods implemented for the same regular expression or
+    that have multiple regular expressions pointing to them
+
+  * All configuration has been removed from sleepy. Anything that
+    requires database access should go in the project.
