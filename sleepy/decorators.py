@@ -217,4 +217,22 @@ def RequiresUrlAttribute(param):
         return _check
     return _wrap
                         
-                    
+def ParameterMax(param, max_):
+    def _wrap(fn):
+        def _check(self, request, *args, **kwargs):
+            if param in self.kwargs and self.kwargs[param] > max_:
+                return self.json_err(
+                    "{0} has a maximum value of {1}".format(
+                        param,
+                        max_
+                        ),
+                    "Parameter Error"
+                    )
+            # We either didn't pass the parameter or it was
+            # in an acceptible range
+            else:
+                return fn(self, request)
+        return _check
+    return _wrap
+                
+                                     
