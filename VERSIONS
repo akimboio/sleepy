@@ -1,3 +1,18 @@
+Changes in Version 0.9.2
+  This version introduces headers and fixes a few bugs.
+
+  Features
+
+  * Introduced a headers field for responses that allows the application
+    developer to pass back custom headers in a response
+
+  * Cleaned up code and stopped passing around a few object variables.
+
+  * Extended documentation
+
+  * Introduced ParameterMax decorator that guards api calls from
+    receiving parameters that are too high in value.
+
 Changes in Version 0.9.1
 
   This version is primarily about updating documentation and cleaning

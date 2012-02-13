@@ -10,15 +10,15 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(
-    name = "Sleepy",
-    version = "0.9.1",
-    author = "Adam Haney",
-    author_email = "adam.haney@retickr.com",
-    description = ("""A RESTful library that is used at retickr on top"""\
+    name="Sleepy",
+    version="0.9.2",
+    author="Adam Haney",
+    author_email="adam.haney@retickr.com",
+    description=("""A RESTful library that is used at retickr on top"""\
                     """of Django we use it for a few apis internally."""),
-    license = "Closed",
-    keywords = "JSON RESTful",
-    url = "http://about.retickr.com",
+    license="Closed",
+    keywords="JSON RESTful",
+    url="http://about.retickr.com",
     packages=['sleepy'],
     long_description=read('README'),
     install_requires=[
@@ -30,4 +30,3 @@ setup(
         "License :: OSI Approved :: Closed",
         ]
 )
-
