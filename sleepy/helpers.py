@@ -5,7 +5,7 @@ import re
 import json
 import smtplib
 import datetime
-
+import base64
 
 def index(request, username=None, *args, **kwargs):
     """
@@ -64,6 +64,26 @@ def symbol_encode(
         number, ii = divmod(number, len(symbols))
         string = symbols[ii] + string
     return string
+
+
+def decode_http_basic(auth_header):
+    try:
+        # Get the authorization token and base 64 decode it
+        auth_string = base64.b64decode(auth_header.split(' ')[1])
+
+        # Grab the username and password from the auth_string
+        password = auth_string.split(':')[1]
+        username = auth_string.split(':')[0]
+
+        return username, password
+
+    # The authorization string didn't comply to the standard
+    except:
+        raise ValueError(
+            "The Authorization header that you passed does not comply"
+            + "with the RFC 1945 HTTP basic authentication standard "
+            + "(http://tools.ietf.org/html/rfc1945) you passed "
+            + "{0}".format(auth_header))
 
 
 def send_email(to_address,
