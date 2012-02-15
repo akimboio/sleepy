@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import os
 from setuptools import setup
 
@@ -11,7 +13,7 @@ def read(fname):
 
 setup(
     name="Sleepy",
-    version="0.9.2",
+    version="0.9.3",
     author="Adam Haney",
     author_email="adam.haney@retickr.com",
     description=("""A RESTful library that is used at retickr on top"""\
