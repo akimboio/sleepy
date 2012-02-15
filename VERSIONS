@@ -1,3 +1,25 @@
+Changes in Version 0.9.4
+  Bug fixes added a few helper functions to sleepy.helpers and
+  brought 404 function's JSON into compliance with our error
+  standards. Also, pulled out some dead/unused/unneccasry code.
+
+  Features
+
+  * Added helpers.unexpected_error which prints an error message out
+
+  * Updated helpers.index to print out a properly formatted
+    json error with proper content type
+
+  Removed Support
+
+  * We are now making better use of Django's error reporting instead
+    of trying to roll our own. Because of this we removed the
+    BaseServerError object.
+
+  * show_urls function in helpers never really worked. We've
+    removed it.
+  
+
 Changes in Version 0.9.3
   Bug fixes.
 

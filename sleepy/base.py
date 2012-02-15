@@ -12,15 +12,10 @@ idioms. Originally created at retickr.
 __author__ = "Adam Haney"
 __license__ = "Copyright (c) 2011 Retickr"
 
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse
 from django.utils.encoding import iri_to_uri
-from collections import OrderedDict
 import json
-import pycassa
-import sys
-import traceback
 import copy
-import sleepy.helpers
 
 
 class Base:
@@ -250,7 +245,7 @@ class Base:
         for k, v in headers.items():
             api_response[k] = v
 
-        return response
+        return api_response
 
     def redirect_out(
         self,
@@ -304,61 +299,3 @@ class Base:
             api_response[k] = v
 
         return api_response
-
-
-class BaseServerError(Base):
-    def __format_traceback(self, traceback):
-        html_string = ""
-        for k in traceback.keys():
-            html_string += "<h2>{0}</h2>\n<ul>".format(k)
-            for elm in traceback[k]:
-                html_string += "<li>{0}</li>".format(elm)
-            html_string += "</ul>"
-        return html_string
-
-    def _call_wrapper(self, request):
-        self.response = HttpResponse(mimetype='application/json')
-        self.kwargs = kwargs
-        self.request = request
-
-        # Build traceback object
-        tb = [sys.exc_info()[0].__name__ + " " + str(sys.exc_info()[1])]
-        for elm in traceback.extract_tb(sys.exc_info()[2]):
-            tb.append(elm[0] + " in "
-                      + elm[2] + ": "
-                      + str(elm[1])
-                      + ". " + str(elm[3]))
-        trace = OrderedDict()
-        trace['uri'] = [request.path]
-        trace['traceback'] = tb
-        trace['get'] = {
-            str(k): str(request.GET[k])
-            for k in request.GET
-            }
-        trace['post'] = {
-            str(k): str(request.GET[k])
-            for k in request.POST
-            }
-        trace['files'] = request.FILES.keys()
-        trace['globals'] = {str(k): str(v) for k, v in globals().items()}
-        trace['locals'] = {str(k): str(v) for k, v in locals().items()}
-        trace['path'] = sys.path
-
-        # If the user passes "chucknorris" then we show them the full trace
-        if "chucknorris" in request.REQUEST:
-            self.result = self.json_out(
-                {'response': trace},
-                indent=1,
-                status_code=500)
-
-        # Otherwise send an email
-        else:
-            traceback.print_tb(sys.exc_info()[2])
-            sleepy.helpers.send_email(
-                    "support@retickr.com",
-                    "api@retickr.com",
-                    "API Error {0}".format(self.__class__.__name__),
-                    self.__format_traceback(trace))
-
-            self.result = self.json_err("An unexpected error occured",
-                                        error_code=500)

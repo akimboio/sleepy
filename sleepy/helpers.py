@@ -7,29 +7,44 @@ import smtplib
 import datetime
 import base64
 
+
 def index(request, username=None, *args, **kwargs):
     """
     a convenience function, since no methods support root access this
     is the 'index' for a 'directory' it prints an error stating that
     the root uri is not a supported resource
     """
-    try:
-        methods = show_urls(urls.urlpatterns)
-    except:
-        methods = []
-    return HttpResponse(json.dumps(
+    return HttpResponse(
+        json.dumps(
             {
-                'error': "Nonsupported method for resource",
-                '_methods': methods
-                },
-            indent=2))
+                'error':
+                    {
+                    "message": "Nonsupported method for resource",
+                    "type": "Not Found Error"
+                    },
+                }
+            ),
+        content_type="application/json"
+        )
 
 
-def show_urls(urllist, depth=0):
-    for entry in urllist:
-        print "  " * depth, entry.regex.pattern
-        if hasattr(entry, 'url_patterns'):
-            show_urls(entry.url_patterns, depth + 1)
+def unexpected_error(request):
+    """
+    a convenience function that dumps an error message. We can use
+    this to conveniently override the server error handler
+    to output JSON
+    """
+    return HttpResponse(
+        json.dumps(
+            {
+                'error': {
+                    "message": "An unexpected error occured",
+                    "type": "Server Error"
+                    }
+                }
+            ),
+        content_type="application/json"
+        )
 
 
 def chunk_split(list, chunk_size):
