@@ -13,7 +13,7 @@ def read(fname):
 
 setup(
     name="Sleepy",
-    version="0.9.3",
+    version="0.9.4",
     author="Adam Haney",
     author_email="adam.haney@retickr.com",
     description=("""A RESTful library that is used at retickr on top"""\
