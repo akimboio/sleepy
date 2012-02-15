@@ -250,7 +250,7 @@ class Base:
         for k, v in headers.items():
             api_response[k] = v
 
-        return response
+        return api_response
 
     def redirect_out(
         self,
