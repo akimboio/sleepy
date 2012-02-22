@@ -108,7 +108,7 @@ def send_email(to_address,
                banner=None,
                template_file=None,
                reply_to=None,
-               template_dir="/srv/api-production/retickr/email_templates/",
+               template_dir="/srv/mynews-production/api-product/retickr/email_templates/",
                copyright_company="retickr",
                company_mailing_address=None):
     if company_mailing_address:
