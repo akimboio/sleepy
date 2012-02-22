@@ -1,3 +1,6 @@
+Changes in Version 0.9.5
+  Updated helpers.py to include the new retick email template.
+  
 Changes in Version 0.9.4
   Bug fixes added a few helper functions to sleepy.helpers and
   brought 404 function's JSON into compliance with our error
