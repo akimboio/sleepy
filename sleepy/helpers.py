@@ -120,6 +120,10 @@ def send_email(to_address,
                     template = open(
                         "{0}email_template_no_banner.html".format(template_dir)
                         ).read()
+                elif banner == "retick":
+                    template = open(
+                        "{0}email_template_no_banner_retick.html".format(template_dir)
+                        ).read()
                 else:
                     template = open(
                         "{0}email_template_banner.html".format(template_dir)
