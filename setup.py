@@ -11,6 +11,8 @@ from setuptools import setup
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
+package_server = "http://package.retickr.com"
+
 setup(
     name="Sleepy",
     version="0.9.6",
@@ -23,8 +25,13 @@ setup(
     url="http://about.retickr.com",
     packages=['sleepy'],
     long_description=read('README'),
+    dependency_links = [
+        "{0}/{1}/{1}-1.3.tar#egg={1}_1.3".format(
+            package_server,
+            "Django"),
+        ],
     install_requires=[
-        "Django>=1.3",
+        "Django==1.3",
         ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
