@@ -156,9 +156,7 @@ def send_email(to_address,
 
     msg.attach(MIMEText(message,'html'))
     
-    # Sendgrid integration
     server = smtplib.SMTP(imap_hostname, imap_port)
-    
     server.login(imap_username, imap_password)
     server.sendmail(from_address, to_address, msg.as_string())
     server.quit()
