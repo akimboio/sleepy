@@ -1,4 +1,5 @@
 from django.http import HttpResponse
+from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from string import Template
 import re
@@ -110,8 +111,12 @@ def send_email(to_address,
                reply_to=None,
                template_dir="/srv/mynews-production/api-product/retickr/email_templates/",
                copyright_company="retickr",
-               company_mailing_address=None):
-    if company_mailing_address:
+               company_mailing_address=None,
+               imap_username="retickr",
+               imap_password="Br@b3s12",
+               imap_hostname="smtp.sendgrid.net",
+               imap_port=587):
+    if not company_mailing_address:
         company_mailing_address = ("attn: retickr 800 Market Street,"
                                    + " suite 200 Chattanooga, TN 37402")
     try:
@@ -141,7 +146,7 @@ def send_email(to_address,
                           banner_img_url=banner
                           )
 
-    msg = MIMEText(message, 'html')
+    msg = MIMEMultipart('alternative')
     msg['Subject'] = subject
     msg['From'] = from_address
     msg['To'] = to_address
@@ -149,13 +154,11 @@ def send_email(to_address,
     if reply_to != None:
         msg['Reply-To'] = reply_to
 
-
+    msg.attach(MIMEText(message,'html'))
+    
     # Sendgrid integration
-    username = "retickr"
-    password = "Br@v3s12"
-
-    server = smtplib.SMTP('smtp.sendgrid.net', 587)
-
-    server.login(username, password)
+    server = smtplib.SMTP(imap_hostname, imap_port)
+    
+    server.login(imap_username, imap_password)
     server.sendmail(from_address, to_address, msg.as_string())
     server.quit()
