@@ -149,5 +149,13 @@ def send_email(to_address,
     if reply_to != None:
         msg['Reply-To'] = reply_to
 
-    server = smtplib.SMTP('localhost')
+
+    # Sendgrid integration
+    username = "retickr"
+    password = "Br@v3s12"
+
+    server = smtplib.SMTP('smtp.sendgrid.net', 587)
+
+    server.login(username, password)
     server.sendmail(from_address, to_address, msg.as_string())
+    server.quit()
