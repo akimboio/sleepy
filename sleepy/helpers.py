@@ -113,7 +113,7 @@ def send_email(to_address,
                copyright_company="retickr",
                company_mailing_address=None,
                imap_username="retickr",
-               imap_password="Br@b3s12",
+               imap_password="Br@v3s12",
                imap_hostname="smtp.sendgrid.net",
                imap_port=587):
     if not company_mailing_address:
