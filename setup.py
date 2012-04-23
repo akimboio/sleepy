@@ -11,7 +11,7 @@ from setuptools import setup
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
-package_server = "http://package.retickr.com"
+package_server = "http://package.retickr"
 
 setup(
     name="Sleepy",
