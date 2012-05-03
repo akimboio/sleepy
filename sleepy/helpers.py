@@ -155,8 +155,8 @@ def send_email(to_address,
         msg['Reply-To'] = reply_to
 
     msg.attach(MIMEText(message,'html'))
-    
+
     server = smtplib.SMTP(imap_hostname, imap_port)
     server.login(imap_username, imap_password)
-    server.sendmail(from_address, to_address, msg.as_string())
+    server.sendmail(from_address, to_address.split(','), msg.as_string())
     server.quit()
