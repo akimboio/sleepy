@@ -50,7 +50,6 @@ class Base:
             for k, v in get_result:
                 result[k] = get_result[k]
         else:
-            result.status_code = 405
             result = self.json_err(
                 "Resource does not support {0} for this method".format(
                     request.method))
