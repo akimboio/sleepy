@@ -53,6 +53,7 @@ class Base:
             result = self.json_err(
                 "Resource does not support {0} for this method".format(
                     request.method))
+            result.status_code = 405
 
         # if supress_error_codes is set make all response codes 200
         if "suppress_response_codes" in request.REQUEST:
