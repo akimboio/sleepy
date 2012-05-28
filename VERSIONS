@@ -1,3 +1,7 @@
+Changes in Version 0.9.8
+  Fixed a bug where Sleepy did not gracefully handle
+  unknown HTTP operations.
+
 Changes in Version 0.9.6
   Updated helpers.py to send emails through Sendgrid
 
