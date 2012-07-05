@@ -24,7 +24,7 @@ setup(
     keywords="JSON RESTful",
     url="http://about.retickr.com",
     packages=['sleepy'],
-    long_description=read('README'),
+    long_description=read('README.rst'),
     dependency_links = [
         "{0}/{1}/{1}-1.3.tar#egg={1}_1.3".format(
             package_server,
