@@ -25,11 +25,7 @@ setup(
     url="http://about.retickr.com",
     packages=['sleepy'],
     long_description=read('README.rst'),
-    dependency_links = [
-        "{0}/{1}/{1}-1.4.tar#egg={1}_1.4".format(
-            package_server,
-            "Django"),
-        ],
+    dependency_links = [],
     install_requires=[
         "Django==1.4",
         ],
