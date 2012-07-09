@@ -14,7 +14,7 @@ __license__ = "Copyright (c) 2011 Retickr"
 
 from django.http import HttpResponse
 from django.utils.encoding import iri_to_uri
-from django.config import settings
+from django.conf import settings
 import json
 import copy
 
