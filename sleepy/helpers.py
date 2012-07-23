@@ -1,10 +1,8 @@
 from django.http import HttpResponse
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+from django.core.mail import EmailMultiAlternatives
 from string import Template
 import re
 import json
-import smtplib
 import datetime
 import base64
 
@@ -138,6 +136,11 @@ def send_email(to_address,
     except IOError:
         template = "$subject\n$message"
 
+    if isinstance(to_address, basestring):
+        to_address_list = to_address.split(',')
+    elif isinstance(to_address, list):
+        to_address_list = to_address
+
     message = Template(template).safe_substitute(subject=subject,
                           message=message,
                           copyright_company="retickr",
@@ -145,18 +148,13 @@ def send_email(to_address,
                           company_mailing_address=company_mailing_address,
                           banner_img_url=banner
                           )
+    headers = {}
 
-    msg = MIMEMultipart('alternative')
-    msg['Subject'] = subject
-    msg['From'] = from_address
-    msg['To'] = to_address
+    if reply_to:
+        headers["Replay-To"] = reply_to
 
-    if reply_to != None:
-        msg['Reply-To'] = reply_to
+    email = EmailMultiAlternatives(subject, message, from_address,
+            to_address_list, headers=headers)
+    email.attach_alternative(message, "text/html")
 
-    msg.attach(MIMEText(message,'html'))
-
-    server = smtplib.SMTP(imap_hostname, imap_port)
-    server.login(imap_username, imap_password)
-    server.sendmail(from_address, to_address.split(','), msg.as_string())
-    server.quit()
+    email.send()
