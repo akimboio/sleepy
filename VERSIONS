@@ -1,3 +1,8 @@
+Changes in Version 0.9.10
+  Updated some decorators
+  Updated the django version dependency to 1.4
+  Migrated the send_mail function to use the django mail utilities
+
 Changes in Version 0.9.8
   Fixed a bug where Sleepy did not gracefully handle
   unknown HTTP operations.
