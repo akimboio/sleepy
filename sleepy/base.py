@@ -14,6 +14,7 @@ __license__ = "Copyright (c) 2011 Retickr"
 
 from django.http import HttpResponse
 from django.utils.encoding import iri_to_uri
+from django.conf import settings
 import json
 import copy
 
@@ -41,6 +42,11 @@ class Base:
         self.request = request
 
         self._pre_call_wrapper(request, *args, **kwargs)
+
+        if settings.SLEEPY_READ_ONLY == True and request.method != 'GET':
+            return self.api_error(
+                "The API is in read only mode for maintenance, currently only GET operations are supported"
+                )
 
         if hasattr(self, request.method):
             result = getattr(self, request.method)(request, *args, **kwargs)

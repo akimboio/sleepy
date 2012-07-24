@@ -5,13 +5,13 @@ Sleepy
 Sleepy is a library that simplifies the creation of symanic RESTful
 apis.
 
-* tools that encourage using appropriate HTTP request types
+- tools that encourage using appropriate HTTP request types
 
-* decorators that function as 'guards' to verify that certain
+- decorators that function as 'guards' to verify that certain
   conditions are met before the underlying method is called. These allow
   your method definitions to be concise.
 
-* various helper functions that have been used for apis around retickr.
+- various helper functions that have been used for apis around retickr.
 
 
 Documentation

@@ -15,7 +15,7 @@ package_server = "http://package.retickr"
 
 setup(
     name="Sleepy",
-    version="0.9.8",
+    version="0.9.10",
     author="Adam Haney",
     author_email="adam.haney@retickr.com",
     description=("""A RESTful library that is used at retickr on top"""\
@@ -24,14 +24,11 @@ setup(
     keywords="JSON RESTful",
     url="http://about.retickr.com",
     packages=['sleepy'],
-    long_description=read('README'),
+    long_description=read('README.rst'),
     dependency_links = [
-        "{0}/{1}/{1}-1.3.tar#egg={1}_1.3".format(
-            package_server,
-            "Django"),
         ],
     install_requires=[
-        "Django==1.3",
+        "Django==1.4",
         ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",

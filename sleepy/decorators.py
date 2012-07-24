@@ -16,16 +16,57 @@ __author__ = "Adam Haney <adam.haney@retickr.com>"
 __license__ = "Copyright (c) 2011 retickr, LLC"
 
 
+# Universe imports
+import MySQLdb
+import MySQLdb.cursors
+
+# Thirdparty imports
 import pycassa
-import time
-import base64
+from django.conf import settings
+
+# Retickr imports
+import sleepy.helpers
+import retickrdata.db.users
 
 
-class RequiresAuthentication(object):
+def RequiresMySQLConnection(fn):
     """
+    This decorator opens a mysql connection, does exception handling and on
+    success passes the mysql connection to the wrapped function in
+    self.mysql_conn
+    """
+    def _connect(self, request):
+        self.mysql_conn = MySQLdb.connect(
+            host=settings.MYSQL["HOST"],
+            user=settings.MYSQL["USER"],
+            passwd=settings.MYSQL["PASSWORD"],
+            db=settings.MYSQL["NAME"])
+        return fn(self, request)
+    return _connect
 
-    :Requires Authentication:
 
+def RequiresCassandraConnection(fn):
+    """
+    This decorator opens a pycassa connection to Cassandra.
+    """
+    def _wrap(fn):
+        def _connect(self, request, *args, **kwargs):
+
+            if not hasattr(self, "cassandra_connection"):
+                self.cassandra_connection = pycassa.connect(
+                    settings.CASSANDRA["keyspace"],
+                    settings.CASSANDRA["hosts"],
+                    settings.CASSANDRA["credentials"])
+
+            return fn(self, request)
+        return _connect
+    return _wrap
+
+
+def RequiresAuthentication(fn):
+
+    """
+    Requires Authentication
     This decorator checks Cassandra for the
     users["<username>"]["Authentication"]["PassHash"] value it then compares
     this with the hash provided by the child class of the password that is
@@ -34,136 +75,124 @@ class RequiresAuthentication(object):
     goes ahead and pulls out the user's UserId and stores it in self.user_id
     we can take advantage of this extra information in many member functions.
 
-
     Authentication Methods
-
-    Currently it supports 3 different methods of
-    authentication. A user may either pass their username as a GET, POST or PUT
-    or DELETE variable (or for that matter a variable for any REQUEST type) or
-    when the url pattern supports it they may pass their username as part of
-    the url. We also support HTTP Basic Authentication as discussed in RFC 1945
-    and the username may be passed this way. Passwords can be passed in as
-    REQUEST parameters in plain text (always use HTTPS), the pass_hash may be
-    passed in, or we can use HTTP basic auth. Please note that in cases where
-    ther username is passed in in multiple ways the usernames must match.
+    ----------------------
+    Currently it supports 2 methods of authentication. A user may
+    either pass their username as a GET, POST or PUT or DELETE
+    variable (or for that matter a variable for any REQUEST type) or
+    when the url pattern supports it they may pass their username as
+    part of the url. We also support HTTP Basic Authentication as
+    discussed in RFC 1945 and the username may be passed this
+    way. Passwords can be passed in as REQUEST parameters in plain
+    text (always use HTTPS) or we can use HTTP basic auth. Please note
+    that in cases where ther username is passed in in multiple ways
+    the usernames must match.
     """
-    def __init__(self, request, *args, **kwargs):
-        self.request = request
-        self.args = args
-        self.kwargs = kwargs
+    def _check(self, request, *args, **kwargs):
+        header_username = None
+        user_password = ""
 
-    def _authenticate(self, username, password):
-        # Make sure we're connected to users_cf
-        if not hasattr(self, 'column_family') or self.column_family != 'users':
-            setattr(self, "%s_cf" % 'users',
-                    pycassa.ColumnFamily(self.cass_pool, 'users'))
+        # Get ther user_passhash, either from HTTP basic Authorization
+        # or hash it from a password
+        if "password" in request.REQUEST:
+            user_password = request.REQUEST["password"]
 
-        # Get user information
-        try:
-            user = self.users_cf.get(
-                username,
-                read_consistency_level=pycassa.ConsistencyLevel.QUORUM)
+        # Using Basic Auth
+        elif "HTTP_AUTHORIZATION" in request.META:
+            # Attempt to parse the Authorization header
+            try:
+                header_username, user_password = sleepy.helpers.decode_http_basic(
+                    request.META["HTTP_AUTHORIZATION"])
+            except ValueError, e:
+                return self.json_out(e, "Parameter Error")
 
-        except pycassa.NotFoundException:
-            return self.json_err("This user does not exist",
-                                 "Invalid Username", error_code=401)
+        # Pass thru for testing
+        elif "HTTP_X_RETICKR_SUDO" in request.META:
+            user_password = ""
 
-        # Compare hashes
-        if user["Authentication"]["PassHash"] != self.user_passhash:
-            return self.json_err('Password Incorrect',
-                                 'Invalid Password',
-                                 error_code=401)
-
-        self.user_id = int(user["Information"]["UserId"])
-
-        # Go ahead and store the user info, it reduces the number
-        # of requests to Cassandra
-        self.user_info = user
-
-        # Store the last access time for every user so throttling
-        # functions can use this info
-        self.users_cf.insert(
-            self.username,
-            {
-                "Information":
-                    {
-                    "LastApiRequest": str(time.time())
+        else:
+            return self.json_err(
+                "You must provide a password or use HTTP Basic Auth",
+                'Authentication Error',
+                error_code=401,
+                headers={
+                    "WWW-Authenticate": "Basic realm=\"Retickr My News API\""
                     }
-                }
-            )
+                )
 
-    def __call__(self, fn):
-        def _check(self, fn):
-            request = self.request
-            args = self.args
-            kwargs = self.kwargs
+        self.user_password = user_password
 
-            # Get ther user_passhash, either as a parameter, from HTTP basic
-            # Authorization or hash it from a password
-            self.user_passhash = None
-            header_username = None
+        # Get username there are several ways they could pass this information
+        self.username = None
 
-            if "password" in request.REQUEST:
-                self.user_passhash = self.hash(request.REQUEST["password"])
+        if "username" in self.kwargs:
+            self.username = self.kwargs["username"]
 
-            elif "passhash" in request.REQUEST:
-                self.user_passhash = request.REQUEST["passhash"]
+        elif "username" in request.REQUEST:
+            self.username = str(request.REQUEST["username"])
 
-            elif "HTTP_AUTHORIZATION" in request.META:
+        elif None != header_username:
+            self.username = header_username
 
-                # Attempt to parse the Authorization header
-                try:
-                    auth_header = request.META['HTTP_AUTHORIZATION']
+        else:
+            return self.json_err(
+                'You must provide a username parameter',
+                'Authentication Error',
+                error_code=401)
 
-                    # Get the authorization token and base 64 decode it
-                    auth_string = base64.b64decode(auth_header.split(' ')[1])
+        # If we've passed the username in two places make sure that they match
+        if header_username != None and self.username != header_username:
+            return self.json_err(
+                "the user in the HTTP Authorization header and user"
+                + " parameter don't match",
+                "Parameter Error",
+                error_code=401,
+                headers={
+                    "WWW-Authenticate": "Basic realm\"Retickr My News API\""
+                    }
+                )
 
-                    # Grab the username and password from the auth_string
-                    password = auth_string.split(':')[1]
-                    header_username = auth_string.split(':')[0]
+        # Make sure we're connected to Cassandra
+        if not hasattr(self, "cassandra_connection"):
+            self.cassandra_connection = pycassa.connect(
+                settings.CASSANDRA["keyspace"],
+                settings.CASSANDRA["hosts"],
+                settings.CASSANDRA["credentials"])
 
-                    self.user_passhash = self.hash(password)
+        user_management_obj = retickrdata.db.users.Management(
+            self.cassandra_connection)
 
-                # The authorization string didn't comply to the standard
-                except KeyError:
-                    return self.json_err(
-                        "The Authorization header that you passed does not comply"
-                        + "with the RFC 1945 HTTP basic authentication standard "
-                        + "(http://tools.ietf.org/html/rfc1945) you passed "
-                        + "{0}".format(auth_header))
+        try:
+            if user_management_obj.authenticate(self.username, user_password):
+                return fn(self, request, *args, **kwargs)
 
-            else:
-                return self.json_err(
-                    "You must provide a password, passhash or use HTTP Basic Auth",
-                    'Authentication Error',
-                    error_code=401)
-
-            # Get username there are several ways they could pass this information
-            username = None
-            if "username" in self.kwargs:
-                username = self.kwargs["username"]
-
-            elif "username" in request.REQUEST:
-                username = str(request.REQUEST["username"])
-
-            elif None != header_username:
-                username = header_username
+            elif request.META.get("HTTP_X_RETICKR_SUDO", "") == settings.SUDO_SECRET:
+                return fn(self, request, *args, **kwargs)
 
             else:
                 return self.json_err(
-                    'You must provide a username parameter',
-                    'Authentication Error',
+                    "Password Incorrect",
+                    "Invalid Password",
                     error_code=401)
 
-            # If we've passed the username in two places make sure that they match
-            if header_username != None and username != header_username:
-                return self.json_err(
-                    "You've passed the username in the HTTP Authorization"
-                        + " header and as a parameter they don't match",
-                    "Parameter Error")
+        except retickrdata.db.exceptions.UserNotFoundError:
+            return self.json_err(
+                "This user does not exist",
+                "Invalid Username",
+                error_code=401
+                )
 
-            return fn(self, request, *args, **kwargs)
-        return _check
+        except retickrdata.db.exceptions.AuthenticationError:
+
+            if request.META.get("HTTP_X_RETICKR_SUDO", "") == settings.SUDO_SECRET:
+                return fn(self, request)
+
+            return self.json_err(
+                'Password Incorrect',
+                'Invalid Password',
+                error_code=401)
+
+    return _check
 
 
 def RequiresParameter(param):
