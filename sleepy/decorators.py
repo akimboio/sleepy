@@ -15,18 +15,11 @@ you must pass this parameter" etc.
 __author__ = "Adam Haney <adam.haney@retickr.com>"
 __license__ = "Copyright (c) 2011 retickr, LLC"
 
-
-# Universe imports
-import MySQLdb
-import MySQLdb.cursors
-
 # Thirdparty imports
-import pycassa
 from django.conf import settings
 
 # Retickr imports
 import sleepy.helpers
-import retickrdata.db.users
 
 
 def RequiresMySQLConnection(fn):
@@ -35,6 +28,7 @@ def RequiresMySQLConnection(fn):
     success passes the mysql connection to the wrapped function in
     self.mysql_conn
     """
+    import MySQLdb
     def _connect(self, request):
         self.mysql_conn = MySQLdb.connect(
             host=settings.MYSQL["HOST"],
@@ -49,6 +43,7 @@ def RequiresCassandraConnection(fn):
     """
     This decorator opens a pycassa connection to Cassandra.
     """
+    import pycassa
     def _wrap(fn):
         def _connect(self, request, *args, **kwargs):
 
@@ -64,7 +59,7 @@ def RequiresCassandraConnection(fn):
 
 
 def RequiresAuthentication(fn):
-
+    import retickrdata.db.users
     """
     Requires Authentication
     This decorator checks Cassandra for the
