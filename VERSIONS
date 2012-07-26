@@ -1,3 +1,8 @@
+Changes in Version 0.9.11
+  Changed decorators to import dependencies within the function. This
+  way sleepy decorators can be used on projects that don't use
+  Cassandra or MySQL without requiring the dependency
+
 Changes in Version 0.9.10
   Updated some decorators
   Updated the django version dependency to 1.4

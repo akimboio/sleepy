@@ -43,7 +43,12 @@ class Base:
 
         self._pre_call_wrapper(request, *args, **kwargs)
 
-        if settings.SLEEPY_READ_ONLY == True and request.method != 'GET':
+        try:
+            read_only = settings.SLEEPY_READ_ONLY
+        except AttributeError:
+            read_only = False
+
+        if read_only == True and request.method != 'GET':
             return self.api_error(
                 "The API is in read only mode for maintenance, currently only GET operations are supported"
                 )
