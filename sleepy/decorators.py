@@ -60,6 +60,7 @@ def RequiresCassandraConnection(fn):
 
 def RequiresAuthentication(fn):
     import retickrdata.db.users
+    import pycassa
     """
     Requires Authentication
     This decorator checks Cassandra for the
