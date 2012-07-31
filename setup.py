@@ -14,8 +14,8 @@ def read(fname):
 package_server = "http://package.retickr"
 
 setup(
-    name="Sleepy",
-    version="0.9.11",
+    name="sleepy",
+    version="0.9.13",
     author="Adam Haney",
     author_email="adam.haney@retickr.com",
     description=("""A RESTful library that is used at retickr on top"""\
@@ -24,7 +24,7 @@ setup(
     keywords="JSON RESTful",
     url="http://about.retickr.com",
     packages=['sleepy'],
-    long_description=read('README.rst'),
+    long_description=read('README'),
     dependency_links = [
         ],
     install_requires=[
