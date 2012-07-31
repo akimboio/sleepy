@@ -1,3 +1,6 @@
+Changes in Version 0.9.12
+  Added a missing import
+
 Changes in Version 0.9.11
   Changed decorators to import dependencies within the function. This
   way sleepy decorators can be used on projects that don't use
@@ -17,7 +20,7 @@ Changes in Version 0.9.6
 
 Changes in Version 0.9.5
   Updated helpers.py to include the new retick email template.
-  
+
 Changes in Version 0.9.4
   Bug fixes added a few helper functions to sleepy.helpers and
   brought 404 function's JSON into compliance with our error
@@ -38,7 +41,7 @@ Changes in Version 0.9.4
 
   * show_urls function in helpers never really worked. We've
     removed it.
-  
+
 
 Changes in Version 0.9.3
   Bug fixes.
