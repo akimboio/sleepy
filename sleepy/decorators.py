@@ -21,6 +21,13 @@ from django.conf import settings
 # Retickr imports
 import sleepy.helpers
 
+def create_mysql_connection():
+    import MySQLdb
+    return MySQLdb.connect(
+        host=settings.MYSQL["HOST"],
+        user=settings.MYSQL["USER"],
+        passwd=settings.MYSQL["PASSWORD"],
+        db=settings.MYSQL["NAME"])
 
 def RequiresMySQLConnection(fn):
     """
@@ -28,32 +35,29 @@ def RequiresMySQLConnection(fn):
     success passes the mysql connection to the wrapped function in
     self.mysql_conn
     """
-    import MySQLdb
-    def _connect(self, request):
-        self.mysql_conn = MySQLdb.connect(
-            host=settings.MYSQL["HOST"],
-            user=settings.MYSQL["USER"],
-            passwd=settings.MYSQL["PASSWORD"],
-            db=settings.MYSQL["NAME"])
-        return fn(self, request)
+    def _connect(self, request, *args, **kwargs):
+        self.mysql_conn = create_mysql_connection()
+        return fn(self, request, *args, **kwargs)
     return _connect
 
+
+def create_cassandra_connection():
+    import pycassa
+    return pycassa.connect(
+        settings.CASSANDRA["keyspace"],
+        settings.CASSANDRA["hosts"],
+        settings.CASSANDRA["credentials"])
 
 def RequiresCassandraConnection(fn):
     """
     This decorator opens a pycassa connection to Cassandra.
     """
-    import pycassa
     def _wrap(fn):
         def _connect(self, request, *args, **kwargs):
 
             if not hasattr(self, "cassandra_connection"):
-                self.cassandra_connection = pycassa.connect(
-                    settings.CASSANDRA["keyspace"],
-                    settings.CASSANDRA["hosts"],
-                    settings.CASSANDRA["credentials"])
-
-            return fn(self, request)
+                self.cassandra_connection = create_cassandra_connection()
+            return fn(self, request, *args, **kwargs)
         return _connect
     return _wrap
 
@@ -180,7 +184,7 @@ def RequiresAuthentication(fn):
         except retickrdata.db.exceptions.AuthenticationError:
 
             if request.META.get("HTTP_X_RETICKR_SUDO", "") == settings.SUDO_SECRET:
-                return fn(self, request)
+                return fn(self, request, *args, **kwargs)
 
             return self.json_err(
                 'Password Incorrect',
@@ -200,7 +204,7 @@ def RequiresParameter(param):
     def _wrap(fn):
         def _check(self, request, *args, **kwargs):
             if param in request.REQUEST:
-                return fn(self, request)
+                return fn(self, request, *args, **kwargs)
             else:
                 return self.json_err(
                     "{0} reqs to {1} should contain the {2} parameter".format(
@@ -229,7 +233,7 @@ def RequiresUrlAttribute(param):
     def _wrap(fn):
         def _check(self, request, *args, **kwargs):
             if param in self.kwargs:
-                return fn(self, request)
+                return fn(self, request, *args, **kwargs)
             else:
                 return self.json_err(
                     "{0} requests to {1} should contain {2} in the url".format(
@@ -255,7 +259,7 @@ def ParameterMax(param, max_):
             # We either didn't pass the parameter or it was
             # in an acceptible range
             else:
-                return fn(self, request)
+                return fn(self, request, *args, **kwargs)
         return _check
     return _wrap
                 
