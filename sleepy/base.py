@@ -12,6 +12,9 @@ idioms. Originally created at retickr.
 __author__ = "Adam Haney"
 __license__ = "Copyright (c) 2011 Retickr"
 
+HTTP_READ_ONLY_METHODS = ['GET', 'HEAD', 'OPTIONS']
+HTTP_METHODS = HTTP_READ_ONLY_METHODS + ['POST', 'PUT', 'DELETE']
+
 from django.http import HttpResponse
 from django.utils.encoding import iri_to_uri
 from django.conf import settings
@@ -30,7 +33,10 @@ class Base:
     """
 
     def __init__(self):
-        pass
+        try:
+            self.read_only = settings.SLEEPY_READ_ONLY
+        except AttributeError:
+            self.read_only = False
 
     def _call_wrapper(self, request, *args, **kwargs):
         """
@@ -38,30 +44,31 @@ class Base:
         This simply handles routing for the request types and in the case
         of HEAD requests suppliments implemented GET requests
         """
-        self.kwargs = kwargs
-        self.request = request
 
-        self._pre_call_wrapper(request, *args, **kwargs)
+        # Check if we're in read only mode
+        if self.read_only == True and request.method not in HTTP_READ_ONLY_METHODS:
+            return self.api_error("The API is in read only mode for maintenance")
 
-        try:
-            read_only = settings.SLEEPY_READ_ONLY
-        except AttributeError:
-            read_only = False
-
-        if read_only == True and request.method != 'GET':
-            return self.api_error(
-                "The API is in read only mode for maintenance, currently only GET operations are supported"
-                )
+        # Addd requests to kwargs
+        kwargs.update(request.REQUEST)
 
         if hasattr(self, request.method):
             result = getattr(self, request.method)(request, *args, **kwargs)
 
+        # Use introspection to handle HEAD requests
         elif request.method == 'HEAD'and hasattr(self, 'GET'):
             get_result = self.GET(request)
             for k, v in get_result:
                 result[k] = get_result[k]
+
+        # Use introspection to handle OPTIONS requests
+        elif request.method == 'OPTIONS':
+            valid_http_methods = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'TRACE', 'CONNECT']
+            available_methods = set(vallid_http_methods) & set(dir(self))
+            result["Accept"] = ",".join(available_methods)
+
         else:
-            result = self.json_err(
+            result = self.api_error(
                 "Resource does not support {0} for this method".format(
                     request.method))
             result.status_code = 405
@@ -71,9 +78,6 @@ class Base:
             result.status_code = 200
 
         return result
-
-    def _pre_call_wrapper(self, request, *args, **kwargs):
-        pass
 
     def __call__(self, request, *args, **kwargs):
         """
@@ -92,7 +96,155 @@ class Base:
         cp = copy.deepcopy(self)
         return cp._call_wrapper(request, *args, **kwargs)
 
-    def json_err(
+    def api_out(
+        data,
+        meta_data=None,
+        cgi_escape=True,
+        indent=None,
+        status_code=200,
+        headers=None):
+        """
+        json_out takes a python datastructure (list, dict,
+        OrderedDict, etc) as an argument and returns a django response
+        containing a json encoded string of the data structure.
+
+        :Parameters:
+          data: mixed
+            A data structure (typically a list, dict or OrderedDict)
+            to output as JSON
+          meta_data : mixed
+            An additional data structure at the same level as data
+            that would be used to display information that isn't
+            'data'
+          cgi_escape : boolean
+            Whether or not to cgi escape the resulting
+            response object
+          indent : boolean
+            The ammount of whitespace to indent for each level of json
+          status_code : integer
+            The HTTP response code to pass back for the response
+          headers : dictionary
+            A dictionary representing the response headers we would
+            like to send back for this request
+        """
+
+            api_response = HttpResponse(mimetype='application/json')
+
+            if None == meta_data:
+                meta_data = {}
+
+            if None == headers:
+                headers = {}
+
+            response = {'data': data}
+            response.update(meta_data)
+
+            if "debug" in self.request.REQUEST:
+                indent = 2
+
+            json_string = json.dumps(response, indent=indent)
+
+            if "callback" in self.request.REQUEST:
+                api_response = HttpResponse(mimetype='text/javascript')
+                json_string = "{0}({1})".format(
+                    self.request.REQUEST["callback"],
+                    json_string)
+
+            api_response.write(json_string)
+
+            api_response.status_code = status_code
+
+            for k, v in headers.items():
+                api_response[k] = v
+
+            return api_response
+
+
+    def blob_out(self, data, content_type, headers=None):
+        """
+        blob_out takes a bytestring with blob content
+        and a content_type and returns the blob
+        object as an HttpResponse
+
+        :Parameters:
+          data : string
+            A byte string of the binary data we wish to output
+          content_type : string
+            A string describing the MIME type of the binary object
+          headers : dictionary
+            A dictionary representing the headers we would like to
+            use for the response
+        """
+
+        if None == headers:
+            headers = {}
+
+        api_response = HttpResponse(
+            data,
+            mimetype=content_type,
+            content_type=content_type)
+
+        api_response["Content-Length"] = len(data)
+
+        for k, v in headers.items():
+            api_response[k] = v
+
+        return api_response
+
+    def redirect_out(
+        self,
+        url,
+        meta_info=None,
+        url_key_name="url",
+        status_code=302,
+        headers=None):
+        """
+        Outputs an HTTP 302 redirect response to a given url with
+        optional contents. This can be handy so if we want to redirect
+        a user to a given url but the programmer wants to get the
+        redirect url as a string they can take advantage of the
+        suppress_response_codes parameter and get a datastructure
+        with a url.
+
+        :Paramters:
+          url : string
+            The url we wish to redirect to.
+          meta_info : mixed
+            A datastructure for meta data that will be passed back
+          url_key_name : string
+            This is included only for backwards compatibility on
+            some of retickr's apis. In general unless you have a
+            good reason the key name for the url string that
+            is passed back will be url, but if you MUST change
+            it you may do so here.
+          status_code : integer
+            Allows us ot override the response code for this method.
+            301 and 302 are valid response codes for a redirect but
+            if you shove something else in this method won't complain
+            NOTE: if the requst passes suppress_response_codes this
+            parameter will be ignored
+        """
+        if None == headers:
+            headers = {}
+
+        api_response = HttpResponse(mimetype='application/json')
+        api_response['Location'] = iri_to_uri(url)
+        api_response.status_code = status_code
+
+        if not meta_info:
+            meta_info = {}
+
+        response = {"data": {url_key_name: url}}
+        response.update(meta_info)
+
+        api_response.write(json.dumps(response))
+
+        for k, v in headers.items():
+            api_response[k] = v
+
+        return api_response
+
+    def api_error(
         self,
         error,
         error_type="Error",
@@ -156,156 +308,6 @@ class Base:
         api_response.status_code = error_code
 
         # Set headers
-        for k, v in headers.items():
-            api_response[k] = v
-
-        return api_response
-
-    def json_out(
-        self,
-        data,
-        meta_data=None,
-        cgi_escape=True,
-        indent=None,
-        status_code=200,
-        headers=None):
-        """
-        json_out takes a python datastructure (list, dict,
-        OrderedDict, etc) as an argument and returns a django response
-        containing a json encoded string of the data structure.
-
-        :Parameters:
-          data: mixed
-            A data structure (typically a list, dict or OrderedDict)
-            to output as JSON
-          meta_data : mixed
-            An additional data structure at the same level as data
-            that would be used to display information that isn't
-            'data'
-          cgi_escape : boolean
-            Whether or not to cgi escape the resulting
-            response object
-          indent : boolean
-            The ammount of whitespace to indent for each level of json
-          status_code : integer
-            The HTTP response code to pass back for the response
-          headers : dictionary
-            A dictionary representing the response headers we would
-            like to send back for this request
-        """
-
-        api_response = HttpResponse(mimetype='application/json')
-
-        if None == meta_data:
-            meta_data = {}
-
-        if None == headers:
-            headers = {}
-
-        response = {'data': data}
-        response.update(meta_data)
-
-        if "debug" in self.request.REQUEST:
-            indent = 2
-
-        json_string = json.dumps(response, indent=indent)
-
-        if "callback" in self.request.REQUEST:
-            api_response = HttpResponse(mimetype='text/javascript')
-            json_string = "{0}({1})".format(
-                self.request.REQUEST["callback"],
-                json_string)
-
-        api_response.write(json_string)
-
-        api_response.status_code = status_code
-
-        for k, v in headers.items():
-            api_response[k] = v
-
-        return api_response
-
-    def blob_out(self, data, content_type, headers=None):
-        """
-        blob_out takes a bytestring with blob content
-        and a content_type and returns the blob
-        object as an HttpResponse
-
-        :Parameters:
-          data : string
-            A byte string of the binary data we wish to output
-          content_type : string
-            A string describing the MIME type of the binary object
-          headers : dictionary
-            A dictionary representing the headers we would like to
-            use for the response
-        """
-
-        if None == headers:
-            headers = {}
-
-        api_response = HttpResponse(
-            data,
-            mimetype=content_type,
-            content_type=content_type)
-
-        api_response["Pragma"] = "no-cache"
-        api_response["Cache-Control"] = "no-cache"
-        api_response["Content-Length"] = len(data)
-
-        for k, v in headers.items():
-            api_response[k] = v
-
-        return api_response
-
-    def redirect_out(
-        self,
-        url,
-        meta_info=None,
-        url_key_name="url",
-        status_code=302,
-        headers=None):
-        """
-        Outputs an HTTP 302 redirect response to a given url with
-        optional contents. This can be handy so if we want to redirect
-        a user to a given url but the programmer wants to get the
-        redirect url as a string they can take advantage of the
-        suppress_response_codes parameter and get a datastructure
-        with a url.
-
-        :Paramters:
-          url : string
-            The url we wish to redirect to.
-          meta_info : mixed
-            A datastructure for meta data that will be passed back
-          url_key_name : string
-            This is included only for backwards compatibility on
-            some of retickr's apis. In general unless you have a
-            good reason the key name for the url string that
-            is passed back will be url, but if you MUST change
-            it you may do so here.
-          status_code : integer
-            Allows us ot override the response code for this method.
-            301 and 302 are valid response codes for a redirect but
-            if you shove something else in this method won't complain
-            NOTE: if the requst passes suppress_response_codes this
-            parameter will be ignored
-        """
-        if None == headers:
-            headers = {}
-
-        api_response = HttpResponse(mimetype='application/json')
-        api_response['Location'] = iri_to_uri(url)
-        api_response.status_code = status_code
-
-        if not meta_info:
-            meta_info = {}
-
-        response = {"data": {url_key_name: url}}
-        response.update(meta_info)
-
-        api_response.write(json.dumps(response))
-
         for k, v in headers.items():
             api_response[k] = v
 
