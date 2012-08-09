@@ -15,7 +15,7 @@ package_server = "http://package.retickr"
 
 setup(
     name="sleepy",
-    version="0.9.13",
+    version="0.9.15",
     author="Adam Haney",
     author_email="adam.haney@retickr.com",
     description=("""A RESTful library that is used at retickr on top"""\
