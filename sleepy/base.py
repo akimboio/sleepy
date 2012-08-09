@@ -128,36 +128,36 @@ class Base:
             like to send back for this request
         """
 
-            api_response = HttpResponse(mimetype='application/json')
+        api_response = HttpResponse(mimetype='application/json')
 
-            if None == meta_data:
-                meta_data = {}
+        if None == meta_data:
+            meta_data = {}
 
-            if None == headers:
-                headers = {}
+        if None == headers:
+            headers = {}
 
-            response = {'data': data}
-            response.update(meta_data)
+        response = {'data': data}
+        response.update(meta_data)
 
-            if "debug" in self.request.REQUEST:
-                indent = 2
+        if "debug" in self.request.REQUEST:
+            indent = 2
 
-            json_string = json.dumps(response, indent=indent)
+        json_string = json.dumps(response, indent=indent)
 
-            if "callback" in self.request.REQUEST:
-                api_response = HttpResponse(mimetype='text/javascript')
-                json_string = "{0}({1})".format(
-                    self.request.REQUEST["callback"],
-                    json_string)
+        if "callback" in self.request.REQUEST:
+            api_response = HttpResponse(mimetype='text/javascript')
+            json_string = "{0}({1})".format(
+                self.request.REQUEST["callback"],
+                json_string)
 
-            api_response.write(json_string)
+        api_response.write(json_string)
 
-            api_response.status_code = status_code
+        api_response.status_code = status_code
 
-            for k, v in headers.items():
-                api_response[k] = v
+        for k, v in headers.items():
+            api_response[k] = v
 
-            return api_response
+        return api_response
 
 
     def blob_out(self, data, content_type, headers=None):
