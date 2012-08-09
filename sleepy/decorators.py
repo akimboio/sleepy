@@ -73,7 +73,6 @@ def RequiresParameters(params):
     def _wrap(fn):
         def _check(*args, **kwargs):
             if set(params) < set(request.REQUEST):
-                kwargs.update(request.REQUEST)
                 return fn(*args, **kwargs)
             else:
                 return self.json_err(
@@ -155,6 +154,18 @@ def ParameterType(**types):
 
         return _check
     return _wrap
+
+def ParameterTransform(param, func):
+    def _wrap(fn):
+        def _transform(*args, **kwargs):
+            try:
+                kwargs[param] = func(kwargs[param])
+                return fn(*args, **kwargs)
+            except:
+                return self.api_error("the {0} parameter could not be parsed", "Parameter Error")
+        return _transform
+    return _wrap
+
                                      
 def OnlyNewer(get_identifier_func, get_elements_func=None, build_partial_response=None):
     def _wrap(fn):
@@ -184,6 +195,3 @@ def OnlyNewer(get_identifier_func, get_elements_func=None, build_partial_respons
 
         return _check
     return _wrap
-
-            
-    
