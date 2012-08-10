@@ -20,9 +20,6 @@ import json
 # Thirdparty imports
 from django.conf import settings
 
-# Retickr imports
-import sleepy.helpers
-
 def create_mysql_connection():
     import MySQLdb
     return MySQLdb.connect(
@@ -38,7 +35,7 @@ def RequiresMySQLConnection(fn):
     self.mysql_conn
     """
     def _connect(*args, **kwargs):
-        self.mysql_conn = create_mysql_connection()
+        kwargs['self'].mysql_conn = create_mysql_connection()
         return fn(*args, **kwargs)
     return _connect
 
@@ -57,8 +54,8 @@ def RequiresCassandraConnection(fn):
     def _wrap(fn):
         def _connect(*args, **kwargs):
 
-            if not hasattr(self, "cassandra_connection"):
-                self.cassandra_connection = create_cassandra_connection()
+            if not hasattr(kwargs['self'], "cassandra_connection"):
+                kwargs['self'].cassandra_connection = create_cassandra_connection()
             return fn(*args, **kwargs)
         return _connect
     return _wrap
@@ -72,14 +69,14 @@ def RequiresParameters(params):
     """
     def _wrap(fn):
         def _check(*args, **kwargs):
-            if set(params) < set(request.REQUEST):
+            if set(params) < set(kwargs['request'].REQUEST):
                 return fn(*args, **kwargs)
             else:
-                return self.json_err(
+                return kwargs['self'].json_err(
                     "{0} reqs to {1} should contain the {2} parameter".format(
                         fn.__name__,
-                        self.__class__.__name__,
-                        param
+                        kwargs['request'].build_absolute_uri(),
+                        set(params) - set(kwargs['request'].REQUEST)
                         )
                     )
         return _check
@@ -101,13 +98,13 @@ def RequiresUrlAttribute(param):
     """
     def _wrap(fn):
         def _check(*args, **kwargs):
-            if param in self.kwargs:
+            if param in kwargs:
                 return fn(*args, **kwargs)
             else:
-                return self.json_err(
+                return kwargs['self'].json_err(
                     "{0} requests to {1} should contain {2} in the url".format(
                         fn.__name__,
-                        self.__class__.__name__,
+                        kwargs['request'].build_absolute_uri(),
                         param
                         )
                     )
@@ -118,8 +115,8 @@ def RequiresUrlAttribute(param):
 def ParameterAssert(param, func, description):
     def _wrap(fn):
         def _check(*args, **kwargs):
-            if param in self.kwargs and not func(param):
-                return self.json_err(
+            if param in kwargs and not func(param):
+                return kwargs['self'].json_err(
                     "{0} {1}".format(param, description),
                     "Parameter Error"
                     )
@@ -148,7 +145,7 @@ def ParameterType(**types):
                 pass
 
             except ValueError:
-                return self.api_error("page_offset parameter must be of type {0}".format(type_))
+                return kwargs['self'].api_error("page_offset parameter must be of type {0}".format(type_))
 
             return fn(*args, **kwargs)
 
@@ -162,7 +159,7 @@ def ParameterTransform(param, func):
                 kwargs[param] = func(kwargs[param])
                 return fn(*args, **kwargs)
             except:
-                return self.api_error("the {0} parameter could not be parsed", "Parameter Error")
+                return kwargs['self'].api_error("the {0} parameter could not be parsed", "Parameter Error")
         return _transform
     return _wrap
 
@@ -177,21 +174,22 @@ def OnlyNewer(get_identifier_func, get_elements_func=None, build_partial_respons
                         return ii, elm
                     return len(seq)
 
-            if "If-Range" in request.META:
-                newest_id = request.META["If-Range"]
+            if "If-Range" in kwargs['request'].META:
+                newest_id = kwargs['request'].META["If-Range"]
 
                 # If we dont' override the way we handle responses assume they're the normal
                 # json responses with data as one of the top elements
-                if not get_elements_func:
+                if get_elements_func == None:
                     get_elements_func = lambda resp: json.loads(resp)["data"]
 
-                    if not build_partial_response:
-                        build_partial_response = lambda elements: kwargs["self"].api_out(elements)
+                if not build_partial_response:
+                    build_partial_response = lambda elements: kwargs["self"].api_out(elements)
 
-                    response = fn(*args, **kwargs)
-                    elements = get_elements_func(response)
-                    elements = elements[:find(newest_id, get_identifier_func)]
-                    return build_partial_response(elements)
-
+                response = fn(*args, **kwargs)
+                elements = get_elements_func(response)
+                elements = elements[:find(newest_id, get_identifier_func)]
+                return build_partial_response(elements)
+            else:
+                return fn(*args, **kwargs)
         return _check
     return _wrap

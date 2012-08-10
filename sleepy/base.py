@@ -63,8 +63,7 @@ class Base:
 
         # Use introspection to handle OPTIONS requests
         elif request.method == 'OPTIONS':
-            valid_http_methods = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'TRACE', 'CONNECT']
-            available_methods = set(vallid_http_methods) & set(dir(self))
+            available_methods = set(HTTP_METHODS) & set(dir(self))
             result["Accept"] = ",".join(available_methods)
 
         else:
@@ -97,6 +96,7 @@ class Base:
         return cp._call_wrapper(request, *args, **kwargs)
 
     def api_out(
+        self,
         data,
         meta_data=None,
         cgi_escape=True,
