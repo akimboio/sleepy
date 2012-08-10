@@ -19,25 +19,7 @@ import json
 
 # Thirdparty imports
 from django.conf import settings
-
-def create_mysql_connection():
-    import MySQLdb
-    return MySQLdb.connect(
-        host=settings.MYSQL["HOST"],
-        user=settings.MYSQL["USER"],
-        passwd=settings.MYSQL["PASSWORD"],
-        db=settings.MYSQL["NAME"])
-
-def RequiresMySQLConnection(fn):
-    """
-    This decorator opens a mysql connection, does exception handling and on
-    success passes the mysql connection to the wrapped function in
-    self.mysql_conn
-    """
-    def _connect(*args, **kwargs):
-        kwargs['self'].mysql_conn = create_mysql_connection()
-        return fn(*args, **kwargs)
-    return _connect
+from responses import api_out, api_error
 
 
 def create_cassandra_connection():
@@ -47,18 +29,18 @@ def create_cassandra_connection():
         settings.CASSANDRA["hosts"],
         settings.CASSANDRA["credentials"])
 
+
 def RequiresCassandraConnection(fn):
     """
     This decorator opens a pycassa connection to Cassandra.
     """
     def _wrap(fn):
-        def _connect(*args, **kwargs):
-
-            if not hasattr(kwargs['self'], "cassandra_connection"):
-                kwargs['self'].cassandra_connection = create_cassandra_connection()
-            return fn(*args, **kwargs)
+        def _connect(request, *args, **kwargs):
+            request.cassandra_connection = create_cassandra_connection()
+            return fn(request, *args, **kwargs)
         return _connect
     return _wrap
+
 
 def RequiresParameters(params):
     """
@@ -68,15 +50,15 @@ def RequiresParameters(params):
     an error and bails out
     """
     def _wrap(fn):
-        def _check(*args, **kwargs):
-            if set(params) < set(kwargs['request'].REQUEST):
-                return fn(*args, **kwargs)
+        def _check(request, *args, **kwargs):
+            if set(params) < set(request.REQUEST):
+                return fn(request, *args, **kwargs)
             else:
-                return kwargs['self'].json_err(
+                return api_error(
                     "{0} reqs to {1} should contain the {2} parameter".format(
                         fn.__name__,
                         kwargs['request'].build_absolute_uri(),
-                        set(params) - set(kwargs['request'].REQUEST)
+                        set(params) - set(request.REQUEST)
                         )
                     )
         return _check
@@ -97,14 +79,14 @@ def RequiresUrlAttribute(param):
     doing that which hopefully eliminates the length of methods
     """
     def _wrap(fn):
-        def _check(*args, **kwargs):
+        def _check(request, *args, **kwargs):
             if param in kwargs:
-                return fn(*args, **kwargs)
+                return fn(request, *args, **kwargs)
             else:
-                return kwargs['self'].json_err(
+                return api_error(
                     "{0} requests to {1} should contain {2} in the url".format(
                         fn.__name__,
-                        kwargs['request'].build_absolute_uri(),
+                        request.build_absolute_uri(),
                         param
                         )
                     )
@@ -114,23 +96,25 @@ def RequiresUrlAttribute(param):
 
 def ParameterAssert(param, func, description):
     def _wrap(fn):
-        def _check(*args, **kwargs):
+        def _check(request, *args, **kwargs):
             if param in kwargs and not func(param):
-                return kwargs['self'].json_err(
+                return api_error(
                     "{0} {1}".format(param, description),
                     "Parameter Error"
                     )
             else:
-                return fn(*args, **kwargs)
+                return fn(request, *args, **kwargs)
         return _check
     return _wrap
 
+
 def ParameterType(**types):
     def _wrap(fn):
-        def _check(*args, **kwargs):
-            try:
-                for param, type_ in types.items():
+        def _check(request, *args, **kwargs):
+            for param, type_ in types.items():
+                try:
                     kwargs[param] = type_(kwargs[param])
+
                     if type_ == bool:
                         if kwargs[param].lower() == "true":
                             kwargs[param] = True
@@ -139,34 +123,46 @@ def ParameterType(**types):
                         else:
                             kwargs[param] = type_(param)
 
-            except KeyError:
-                # If there isn't a parameter to type check we assume that the default was declared as
-                # a default parameter to the function
-                pass
+                except KeyError:
+                    # If there isn't a parameter to type check we assume
+                    # that the default was declared as a default parameter
+                    # to the function
+                    pass
 
-            except ValueError:
-                return kwargs['self'].api_error("page_offset parameter must be of type {0}".format(type_))
+                except ValueError:
+                    return api_error(
+                        "{0} parameter must be of type {1}".format(
+                            param,
+                            type_
+                            )
+                        )
 
-            return fn(*args, **kwargs)
-
+            return fn(request, *args, **kwargs)
         return _check
     return _wrap
 
+
 def ParameterTransform(param, func):
     def _wrap(fn):
-        def _transform(*args, **kwargs):
+        def _transform(request, *args, **kwargs):
             try:
                 kwargs[param] = func(kwargs[param])
-                return fn(*args, **kwargs)
+                return fn(request, *args, **kwargs)
             except:
-                return kwargs['self'].api_error("the {0} parameter could not be parsed", "Parameter Error")
+                return api_error(
+                    "the {0} parameter could not be parsed",
+                    "Parameter Error"
+                    )
         return _transform
     return _wrap
 
-                                     
-def OnlyNewer(get_identifier_func, get_elements_func=None, build_partial_response=None):
+
+def OnlyNewer(
+    get_identifier_func,
+    get_elements_func=None,
+    build_partial_response=None):
     def _wrap(fn):
-        def _check(*args, **kwargs):
+        def _check(request, *args, **kwargs):
 
             def find(needle, seq):
                 for ii, elm in enumerate(seq):
@@ -174,22 +170,23 @@ def OnlyNewer(get_identifier_func, get_elements_func=None, build_partial_respons
                         return ii, elm
                     return len(seq)
 
-            if "If-Range" in kwargs['request'].META:
-                newest_id = kwargs['request'].META["If-Range"]
+            if "If-Range" in request.META:
+                newest_id = request.META["If-Range"]
 
-                # If we dont' override the way we handle responses assume they're the normal
-                # json responses with data as one of the top elements
+                # If we dont' override the way we handle responses
+                # assume they're the normal json responses with data
+                # as one of the top elements
                 if get_elements_func == None:
                     get_elements_func = lambda resp: json.loads(resp)["data"]
 
                 if not build_partial_response:
-                    build_partial_response = lambda elements: kwargs["self"].api_out(elements)
+                    build_partial_response = lambda elements: api_out(elements)
 
-                response = fn(*args, **kwargs)
+                response = fn(request, *args, **kwargs)
                 elements = get_elements_func(response)
                 elements = elements[:find(newest_id, get_identifier_func)]
                 return build_partial_response(elements)
             else:
-                return fn(*args, **kwargs)
+                return fn(request, *args, **kwargs)
         return _check
     return _wrap
