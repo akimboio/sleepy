@@ -36,12 +36,6 @@ class Base:
         except AttributeError:
             self.read_only = False
 
-        for method in HTTP_METHODS:
-            try:
-                setattr(self, method, staticmethod(getattr(self, method)))
-            except AttributeError:
-                pass
-
     def __call__(self, request, *args, **kwargs):
         """
         Django isn't always thread safe, there are a few ways we can

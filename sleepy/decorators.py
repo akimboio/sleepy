@@ -35,9 +35,9 @@ def RequiresCassandraConnection(fn):
     This decorator opens a pycassa connection to Cassandra.
     """
     def _wrap(fn):
-        def _connect(request, *args, **kwargs):
+        def _connect(self, request, *args, **kwargs):
             request.cassandra_connection = create_cassandra_connection()
-            return fn(request, *args, **kwargs)
+            return fn(self, request, *args, **kwargs)
         return _connect
     return _wrap
 
@@ -50,14 +50,14 @@ def RequiresParameters(params):
     an error and bails out
     """
     def _wrap(fn):
-        def _check(request, *args, **kwargs):
-            if set(params) < set(request.REQUEST):
-                return fn(request, *args, **kwargs)
+        def _check(self, request, *args, **kwargs):
+            if set(params) <= set(request.REQUEST):
+                return fn(self, request, *args, **kwargs)
             else:
                 return api_error(
                     "{0} reqs to {1} should contain the {2} parameter".format(
                         fn.__name__,
-                        kwargs['request'].build_absolute_uri(),
+                        request.build_absolute_uri(),
                         set(params) - set(request.REQUEST)
                         )
                     )
@@ -79,9 +79,9 @@ def RequiresUrlAttribute(param):
     doing that which hopefully eliminates the length of methods
     """
     def _wrap(fn):
-        def _check(request, *args, **kwargs):
+        def _check(self, request, *args, **kwargs):
             if param in kwargs:
-                return fn(request, *args, **kwargs)
+                return fn(self, request, *args, **kwargs)
             else:
                 return api_error(
                     "{0} requests to {1} should contain {2} in the url".format(
@@ -96,21 +96,21 @@ def RequiresUrlAttribute(param):
 
 def ParameterAssert(param, func, description):
     def _wrap(fn):
-        def _check(request, *args, **kwargs):
+        def _check(self, request, *args, **kwargs):
             if param in kwargs and not func(param):
                 return api_error(
                     "{0} {1}".format(param, description),
                     "Parameter Error"
                     )
             else:
-                return fn(request, *args, **kwargs)
+                return fn(self, request, *args, **kwargs)
         return _check
     return _wrap
 
 
 def ParameterType(**types):
     def _wrap(fn):
-        def _check(request, *args, **kwargs):
+        def _check(self, request, *args, **kwargs):
             for param, type_ in types.items():
                 try:
                     kwargs[param] = type_(kwargs[param])
@@ -137,17 +137,17 @@ def ParameterType(**types):
                             )
                         )
 
-            return fn(request, *args, **kwargs)
+            return fn(self, request, *args, **kwargs)
         return _check
     return _wrap
 
 
 def ParameterTransform(param, func):
     def _wrap(fn):
-        def _transform(request, *args, **kwargs):
+        def _transform(self, request, *args, **kwargs):
             try:
                 kwargs[param] = func(kwargs[param])
-                return fn(request, *args, **kwargs)
+                return fn(self, request, *args, **kwargs)
             except:
                 return api_error(
                     "the {0} parameter could not be parsed",
@@ -162,7 +162,7 @@ def OnlyNewer(
     get_elements_func=None,
     build_partial_response=None):
     def _wrap(fn):
-        def _check(request, *args, **kwargs):
+        def _check(self, request, *args, **kwargs):
 
             def find(needle, seq):
                 for ii, elm in enumerate(seq):
@@ -182,11 +182,11 @@ def OnlyNewer(
                 if not build_partial_response:
                     build_partial_response = lambda elements: api_out(elements)
 
-                response = fn(request, *args, **kwargs)
+                response = fn(self, request, *args, **kwargs)
                 elements = get_elements_func(response)
                 elements = elements[:find(newest_id, get_identifier_func)]
                 return build_partial_response(elements)
             else:
-                return fn(request, *args, **kwargs)
+                return fn(self, request, *args, **kwargs)
         return _check
     return _wrap
