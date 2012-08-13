@@ -19,7 +19,7 @@ import json
 
 # Thirdparty imports
 from django.conf import settings
-from responses import api_out, api_error
+from sleepy.responses import api_out, api_error
 
 
 def create_cassandra_connection():
