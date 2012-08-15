@@ -1,3 +1,7 @@
+Changes in Version 0.9.15
+  Moved some requirements into requirements.txt
+  Updated setup.py to use pip
+
 Changes in Version 0.9.14
   Version bump, because bumping is fun!
   (Actually to support pypi quirk)
