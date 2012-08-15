@@ -13,6 +13,8 @@ def read(fname):
 
 package_server = "http://package.retickr"
 
+os.system("pip install -r requirements.txt")
+
 setup(
     name="sleepy",
     version="0.9.14",
@@ -27,9 +29,7 @@ setup(
     long_description=read('README'),
     dependency_links = [
         ],
-    install_requires=[
-        "Django==1.4",
-        ],
+    install_requires=[],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Topic :: Framework",

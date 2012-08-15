@@ -1,0 +1,2 @@
+# Public packages
+Django==1.4
