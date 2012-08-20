@@ -64,7 +64,8 @@ class Base:
             # I suspect it'll largely be handled by Django once we start fully
             # utilizing it's capabilities.  For now, this makes the errors go
             # away. #justmakeitwork ~ JCM
-            result = self.GET(request)
+            result = HttpResponse(mimetype='application/json')
+            result["Connection"] = "close"
         else:
             result = self.json_err(
                 "Resource does not support {0} for this method".format(
