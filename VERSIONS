@@ -1,3 +1,6 @@
+Changes in Version 0.9.16
+  Fixed a bug
+
 Changes in Version 0.9.15
   Moved some requirements into requirements.txt
   Updated setup.py to use pip
