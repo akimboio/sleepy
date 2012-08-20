@@ -57,9 +57,14 @@ class Base:
             result = getattr(self, request.method)(request, *args, **kwargs)
 
         elif request.method == 'HEAD'and hasattr(self, 'GET'):
-            get_result = self.GET(request)
-            for k, v in get_result:
-                result[k] = get_result[k]
+            # Hmmm, I'm not really sure what the proper
+            # way is to generally handle HEAD requests here.  But
+            # we aren't actually making use of it atm, so it's *currently*
+            # not a big deal.
+            # I suspect it'll largely be handled by Django once we start fully
+            # utilizing it's capabilities.  For now, this makes the errors go
+            # away. #justmakeitwork ~ JCM
+            result = self.GET(request)
         else:
             result = self.json_err(
                 "Resource does not support {0} for this method".format(
