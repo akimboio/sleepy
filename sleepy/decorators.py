@@ -21,27 +21,6 @@ import json
 from django.conf import settings
 from sleepy.responses import api_out, api_error
 
-
-def create_cassandra_connection():
-    import pycassa
-    return pycassa.connect(
-        settings.CASSANDRA["keyspace"],
-        settings.CASSANDRA["hosts"],
-        settings.CASSANDRA["credentials"])
-
-
-def RequiresCassandraConnection(fn):
-    """
-    This decorator opens a pycassa connection to Cassandra.
-    """
-    def _wrap(fn):
-        def _connect(self, request, *args, **kwargs):
-            request.cassandra_connection = create_cassandra_connection()
-            return fn(self, request, *args, **kwargs)
-        return _connect
-    return _wrap
-
-
 def RequiresParameters(params):
     """
     This is decorator that makes sure the function it wraps has received a

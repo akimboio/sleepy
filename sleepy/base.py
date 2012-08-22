@@ -37,20 +37,6 @@ class Base:
             self.read_only = False
 
     def __call__(self, request, *args, **kwargs):
-        """
-        Django isn't always thread safe, there are a few ways we can
-        get around this problem we can either run on a threaded server
-        which can serve requests faster, and to keep ourselves safe we
-        can make a deep copy of our api object in memory every
-        time. this can lead to high memory loads, but faster
-        responses. We can also run on multiple processes with a single
-        thread, this can lead to a log jam if a ton of requests come
-        in at once if we do opt for the deep copy make sure to include
-        maximum-requests (or something similar if you aren't using
-        Apache in your conf file. This will help to overcome memory
-        leaks. I hate you, mod_wsgi
-        """
-
         # Check if we're in read only mode
         if (self.read_only == True
             and request.method not in HTTP_READ_ONLY_METHODS):
