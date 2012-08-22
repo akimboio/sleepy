@@ -52,6 +52,9 @@ def api_out(
 
     return api_response
 
+def api_response(msg):
+    return api_out({"response": msg})
+
 
 def blob_out(data, content_type, headers=None):
     """
