@@ -129,7 +129,7 @@ def ParameterTransform(param, func):
                 return fn(self, request, *args, **kwargs)
             except:
                 return api_error(
-                    "the {0} parameter could not be parsed",
+                    "the {0} parameter could not be parsed".format(param),
                     "Parameter Error"
                     )
         return _transform
