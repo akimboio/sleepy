@@ -15,183 +15,13 @@ you must pass this parameter" etc.
 __author__ = "Adam Haney <adam.haney@retickr.com>"
 __license__ = "Copyright (c) 2011 retickr, LLC"
 
+import json
+
 # Thirdparty imports
 from django.conf import settings
+from sleepy.responses import api_out, api_error
 
-# Retickr imports
-import sleepy.helpers
-
-
-def RequiresMySQLConnection(fn):
-    """
-    This decorator opens a mysql connection, does exception handling and on
-    success passes the mysql connection to the wrapped function in
-    self.mysql_conn
-    """
-    import MySQLdb
-    def _connect(self, request):
-        self.mysql_conn = MySQLdb.connect(
-            host=settings.MYSQL["HOST"],
-            user=settings.MYSQL["USER"],
-            passwd=settings.MYSQL["PASSWORD"],
-            db=settings.MYSQL["NAME"])
-        return fn(self, request)
-    return _connect
-
-
-def RequiresCassandraConnection(fn):
-    """
-    This decorator opens a pycassa connection to Cassandra.
-    """
-    import pycassa
-    def _wrap(fn):
-        def _connect(self, request, *args, **kwargs):
-
-            if not hasattr(self, "cassandra_connection"):
-                self.cassandra_connection = pycassa.connect(
-                    settings.CASSANDRA["keyspace"],
-                    settings.CASSANDRA["hosts"],
-                    settings.CASSANDRA["credentials"])
-
-            return fn(self, request)
-        return _connect
-    return _wrap
-
-
-def RequiresAuthentication(fn):
-    import retickrdata.db.users
-    import pycassa
-    """
-    Requires Authentication
-    This decorator checks Cassandra for the
-    users["<username>"]["Authentication"]["PassHash"] value it then compares
-    this with the hash provided by the child class of the password that is
-    passed in. If this fails, it prints an error, if it succeeds it calls the
-    function it is decorating. Since it's already pulled from Cassandra it
-    goes ahead and pulls out the user's UserId and stores it in self.user_id
-    we can take advantage of this extra information in many member functions.
-
-    Authentication Methods
-    ----------------------
-    Currently it supports 2 methods of authentication. A user may
-    either pass their username as a GET, POST or PUT or DELETE
-    variable (or for that matter a variable for any REQUEST type) or
-    when the url pattern supports it they may pass their username as
-    part of the url. We also support HTTP Basic Authentication as
-    discussed in RFC 1945 and the username may be passed this
-    way. Passwords can be passed in as REQUEST parameters in plain
-    text (always use HTTPS) or we can use HTTP basic auth. Please note
-    that in cases where ther username is passed in in multiple ways
-    the usernames must match.
-    """
-    def _check(self, request, *args, **kwargs):
-        header_username = None
-        user_password = ""
-
-        # Get ther user_passhash, either from HTTP basic Authorization
-        # or hash it from a password
-        if "password" in request.REQUEST:
-            user_password = request.REQUEST["password"]
-
-        # Using Basic Auth
-        elif "HTTP_AUTHORIZATION" in request.META:
-            # Attempt to parse the Authorization header
-            try:
-                header_username, user_password = sleepy.helpers.decode_http_basic(
-                    request.META["HTTP_AUTHORIZATION"])
-            except ValueError, e:
-                return self.json_out(e, "Parameter Error")
-
-        # Pass thru for testing
-        elif "HTTP_X_RETICKR_SUDO" in request.META:
-            user_password = ""
-
-        else:
-            return self.json_err(
-                "You must provide a password or use HTTP Basic Auth",
-                'Authentication Error',
-                error_code=401,
-                headers={
-                    "WWW-Authenticate": "Basic realm=\"Retickr My News API\""
-                    }
-                )
-
-        self.user_password = user_password
-
-        # Get username there are several ways they could pass this information
-        self.username = None
-
-        if "username" in self.kwargs:
-            self.username = self.kwargs["username"]
-
-        elif "username" in request.REQUEST:
-            self.username = str(request.REQUEST["username"])
-
-        elif None != header_username:
-            self.username = header_username
-
-        else:
-            return self.json_err(
-                'You must provide a username parameter',
-                'Authentication Error',
-                error_code=401)
-
-        # If we've passed the username in two places make sure that they match
-        if header_username != None and self.username != header_username:
-            return self.json_err(
-                "the user in the HTTP Authorization header and user"
-                + " parameter don't match",
-                "Parameter Error",
-                error_code=401,
-                headers={
-                    "WWW-Authenticate": "Basic realm\"Retickr My News API\""
-                    }
-                )
-
-        # Make sure we're connected to Cassandra
-        if not hasattr(self, "cassandra_connection"):
-            self.cassandra_connection = pycassa.connect(
-                settings.CASSANDRA["keyspace"],
-                settings.CASSANDRA["hosts"],
-                settings.CASSANDRA["credentials"])
-
-        user_management_obj = retickrdata.db.users.Management(
-            self.cassandra_connection)
-
-        try:
-            if user_management_obj.authenticate(self.username, user_password):
-                return fn(self, request, *args, **kwargs)
-
-            elif request.META.get("HTTP_X_RETICKR_SUDO", "") == settings.SUDO_SECRET:
-                return fn(self, request, *args, **kwargs)
-
-            else:
-                return self.json_err(
-                    "Password Incorrect",
-                    "Invalid Password",
-                    error_code=401)
-
-        except retickrdata.db.exceptions.UserNotFoundError:
-            return self.json_err(
-                "This user does not exist",
-                "Invalid Username",
-                error_code=401
-                )
-
-        except retickrdata.db.exceptions.AuthenticationError:
-
-            if request.META.get("HTTP_X_RETICKR_SUDO", "") == settings.SUDO_SECRET:
-                return fn(self, request)
-
-            return self.json_err(
-                'Password Incorrect',
-                'Invalid Password',
-                error_code=401)
-
-    return _check
-
-
-def RequiresParameter(param):
+def RequiresParameters(params):
     """
     This is decorator that makes sure the function it wraps has received a
     given parameter in the request.REQUEST object. If the wrapped function
@@ -200,14 +30,14 @@ def RequiresParameter(param):
     """
     def _wrap(fn):
         def _check(self, request, *args, **kwargs):
-            if param in request.REQUEST:
-                return fn(self, request)
+            if set(params) <= set(request.REQUEST):
+                return fn(self, request, *args, **kwargs)
             else:
-                return self.json_err(
+                return api_error(
                     "{0} reqs to {1} should contain the {2} parameter".format(
                         fn.__name__,
-                        self.__class__.__name__,
-                        param
+                        request.build_absolute_uri(),
+                        set(params) - set(request.REQUEST)
                         )
                     )
         return _check
@@ -229,35 +59,113 @@ def RequiresUrlAttribute(param):
     """
     def _wrap(fn):
         def _check(self, request, *args, **kwargs):
-            if param in self.kwargs:
-                return fn(self, request)
+            if param in kwargs:
+                return fn(self, request, *args, **kwargs)
             else:
-                return self.json_err(
+                return api_error(
                     "{0} requests to {1} should contain {2} in the url".format(
                         fn.__name__,
-                        self.__class__.__name__,
+                        request.build_absolute_uri(),
                         param
                         )
                     )
         return _check
     return _wrap
-                        
-def ParameterMax(param, max_):
+
+
+def ParameterAssert(param, func, description):
     def _wrap(fn):
         def _check(self, request, *args, **kwargs):
-            if param in self.kwargs and self.kwargs[param] > max_:
-                return self.json_err(
-                    "{0} has a maximum value of {1}".format(
-                        param,
-                        max_
-                        ),
+            if param in kwargs and not func(param):
+                return api_error(
+                    "{0} {1}".format(param, description),
                     "Parameter Error"
                     )
-            # We either didn't pass the parameter or it was
-            # in an acceptible range
             else:
-                return fn(self, request)
+                return fn(self, request, *args, **kwargs)
         return _check
     return _wrap
-                
-                                     
+
+
+def ParameterType(**types):
+    def _wrap(fn):
+        def _check(self, request, *args, **kwargs):
+            for param, type_ in types.items():
+                try:
+                    kwargs[param] = type_(kwargs[param])
+
+                    if type_ == bool:
+                        if kwargs[param].lower() == "true":
+                            kwargs[param] = True
+                        elif kwargs[param].lower() == "false":
+                            kwargs[param] = False
+                        else:
+                            kwargs[param] = type_(param)
+
+                except KeyError:
+                    # If there isn't a parameter to type check we assume
+                    # that the default was declared as a default parameter
+                    # to the function
+                    pass
+
+                except ValueError:
+                    return api_error(
+                        "{0} parameter must be of type {1}".format(
+                            param,
+                            type_
+                            )
+                        )
+
+            return fn(self, request, *args, **kwargs)
+        return _check
+    return _wrap
+
+
+def ParameterTransform(param, func):
+    def _wrap(fn):
+        def _transform(self, request, *args, **kwargs):
+            try:
+                kwargs[param] = func(kwargs[param])
+                return fn(self, request, *args, **kwargs)
+            except:
+                return api_error(
+                    "the {0} parameter could not be parsed",
+                    "Parameter Error"
+                    )
+        return _transform
+    return _wrap
+
+
+def OnlyNewer(
+    get_identifier_func,
+    get_elements_func=None,
+    build_partial_response=None):
+    def _wrap(fn):
+        def _check(self, request, *args, **kwargs):
+
+            def find(needle, seq):
+                for ii, elm in enumerate(seq):
+                    if elm == needle:
+                        return ii, elm
+                    return len(seq)
+
+            if "If-Range" in request.META:
+                newest_id = request.META["If-Range"]
+
+                # If we dont' override the way we handle responses
+                # assume they're the normal json responses with data
+                # as one of the top elements
+                if get_elements_func == None:
+                    get_elements_func = lambda resp: json.loads(resp)["data"]
+
+                if not build_partial_response:
+                    build_partial_response = lambda elements: api_out(elements)
+
+                response = fn(self, request, *args, **kwargs)
+                elements = get_elements_func(response)
+                elements = elements[:find(newest_id, get_identifier_func)]
+                return build_partial_response(elements)
+            else:
+                return fn(self, request, *args, **kwargs)
+        return _check
+    return _wrap

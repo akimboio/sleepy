@@ -1,9 +1,6 @@
 from django.http import HttpResponse
-from django.core.mail import EmailMultiAlternatives
-from string import Template
 import re
 import json
-import datetime
 import base64
 
 
@@ -98,63 +95,3 @@ def decode_http_basic(auth_header):
             + "with the RFC 1945 HTTP basic authentication standard "
             + "(http://tools.ietf.org/html/rfc1945) you passed "
             + "{0}".format(auth_header))
-
-
-def send_email(to_address,
-               from_address,
-               subject,
-               message,
-               banner=None,
-               template_file=None,
-               reply_to=None,
-               template_dir="/srv/mynews-production/api-product/retickr/email_templates/",
-               copyright_company="retickr",
-               company_mailing_address=None,
-               imap_username="retickr",
-               imap_password="Br@v3s12",
-               imap_hostname="smtp.sendgrid.net",
-               imap_port=587):
-    if not company_mailing_address:
-        company_mailing_address = ("attn: retickr 800 Market Street,"
-                                   + " suite 200 Chattanooga, TN 37402")
-    try:
-        if template_file == None:
-                if banner == None:
-                    template = open(
-                        "{0}email_template_no_banner.html".format(template_dir)
-                        ).read()
-                elif banner == "retick":
-                    template = open(
-                        "{0}email_template_no_banner_retick.html".format(template_dir)
-                        ).read()
-                else:
-                    template = open(
-                        "{0}email_template_banner.html".format(template_dir)
-                        ).read()
-        else:
-            template = open(template_file).read()
-    except IOError:
-        template = "$subject\n$message"
-
-    if isinstance(to_address, basestring):
-        to_address_list = to_address.split(',')
-    elif isinstance(to_address, list):
-        to_address_list = to_address
-
-    message = Template(template).safe_substitute(subject=subject,
-                          message=message,
-                          copyright_company="retickr",
-                          current_year=datetime.datetime.now().year,
-                          company_mailing_address=company_mailing_address,
-                          banner_img_url=banner
-                          )
-    headers = {}
-
-    if reply_to:
-        headers["Replay-To"] = reply_to
-
-    email = EmailMultiAlternatives(subject, message, from_address,
-            to_address_list, headers=headers)
-    email.attach_alternative(message, "text/html")
-
-    email.send()

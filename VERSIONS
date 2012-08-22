@@ -1,3 +1,14 @@
+Changes in Version 0.9.19
+  Tons and tons of changes.
+
+  - json_out, json_err are now api_out and api_error
+  - Added many new decorators
+  - requests.REQUEST is now routed to the kwargs of a view member function
+
+
+Changes in Version 0.9.18
+  Fixed kwargs, args
+
 Changes in Version 0.9.17
   Tried further simplifying the HEAD response
 
