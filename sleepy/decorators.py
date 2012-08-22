@@ -126,12 +126,12 @@ def ParameterTransform(param, func):
         def _transform(self, request, *args, **kwargs):
             try:
                 kwargs[param] = func(kwargs[param])
-                return fn(self, request, *args, **kwargs)
             except:
                 return api_error(
                     "the {0} parameter could not be parsed".format(param),
                     "Parameter Error"
                     )
+            return fn(self, request, *args, **kwargs)
         return _transform
     return _wrap
 
