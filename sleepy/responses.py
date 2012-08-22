@@ -199,3 +199,6 @@ def api_error(
         api_response[k] = v
 
     return api_response
+
+def robots_disallow(request):
+        return HttpResponse("User-agent: *\nDisallow: /", mimetype="text/plain")
