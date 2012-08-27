@@ -31,6 +31,8 @@ class Base:
     """
 
     def __init__(self):
+        self.kwargs = {}
+
         try:
             self.read_only = settings.SLEEPY_READ_ONLY
         except AttributeError:
