@@ -132,11 +132,6 @@ def ParameterTransform(param, func):
                     "Parameter Error"
                     )
             else:
-                # Why do we move this out here?  Because previously any
-                # exceptions from parameter transforming and in the function
-                # execution itself  would be caught and treated the same.
-                # That made debugging difficult because all errors in the
-                # decorated function would look like parameter errors.
                 return fn(self, request, *args, **kwargs)
         return _transform
     return _wrap
