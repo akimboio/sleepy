@@ -76,7 +76,7 @@ def RequiresUrlAttribute(param):
 def ParameterAssert(param, func, description):
     def _wrap(fn):
         def _check(self, request, *args, **kwargs):
-            if param in kwargs and not func(param):
+            if param in kwargs and not func(kwargs[param]):
                 return api_error(
                     "{0} {1}".format(param, description),
                     "Parameter Error"
@@ -126,12 +126,13 @@ def ParameterTransform(param, func):
         def _transform(self, request, *args, **kwargs):
             try:
                 kwargs[param] = func(kwargs[param])
-                return fn(self, request, *args, **kwargs)
             except:
                 return api_error(
-                    "the {0} parameter could not be parsed",
+                    "The {0} parameter could not be parsed".format(param),
                     "Parameter Error"
                     )
+            else:
+                return fn(self, request, *args, **kwargs)
         return _transform
     return _wrap
 
