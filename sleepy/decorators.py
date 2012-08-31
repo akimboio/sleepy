@@ -76,7 +76,7 @@ def RequiresUrlAttribute(param):
 def ParameterAssert(param, func, description):
     def _wrap(fn):
         def _check(self, request, *args, **kwargs):
-            if param in kwargs and not func(param):
+            if param in kwargs and not func(kwargs[param]):
                 return api_error(
                     "{0} {1}".format(param, description),
                     "Parameter Error"

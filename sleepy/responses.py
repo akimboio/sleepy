@@ -52,9 +52,6 @@ def api_out(
 
     return api_response
 
-def api_response(msg):
-    return api_out({"response": msg})
-
 
 def blob_out(data, content_type, headers=None):
     """
@@ -203,5 +200,10 @@ def api_error(
 
     return api_response
 
+
+def api_success():
+    return api_out("Success")
+
+
 def robots_disallow(request):
-        return HttpResponse("User-agent: *\nDisallow: /", mimetype="text/plain")
+    return HttpResponse("User-agent: *\nDisallow: /", mimetype="text/plain")
