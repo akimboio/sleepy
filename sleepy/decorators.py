@@ -19,6 +19,8 @@ import json
 
 # Thirdparty imports
 from django.conf import settings
+from django.utils.decorators import wraps
+
 from sleepy.responses import api_out, api_error
 
 def RequiresParameters(params):
@@ -171,16 +173,15 @@ def OnlyNewer(
     return _wrap
 
 
-def AbsolutePermalink(protocol="https://"):
+def AbsolutePermalink(func, protocol="https://"):
     from django.core.urlresolvers import reverse
     from django.contrib.sites.models import Site
 
-    def _wrap(fn):
-        def _inner(*args, **kwargs):
-            bits = fn(*args, **kwargs)
-            path = reverse(bits[0], None, *bits[1:3])
-            domain = Site.objects.get_current().domain
-            return "{0}{1}{2}".format(protocol, domain, path)
-        return _inner
-    return _wrap
+    @wraps(func)
+    def inner(*args, **kwargs):
+        bits = func(*args, **kwargs)
+        path = reverse(bits[0], None, *bits[1:3])
+        domain = Site.objects.get_current().domain
+        return u"{0}{1}{2}".format(protocol, domain, path)
+    return inner
 
