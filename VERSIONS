@@ -1,3 +1,6 @@
+Changes in Version 0.9.22
+  Updated the AbsoluteParamLink decorator
+
 Changes in Version 0.9.21
   Added an AbsolutePermaLink decorator
 
