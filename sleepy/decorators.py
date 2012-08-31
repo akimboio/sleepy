@@ -128,11 +128,10 @@ def ParameterTransform(param, func):
                 kwargs[param] = func(kwargs[param])
             except:
                 return api_error(
-                    "The {0} parameter could not be parsed".format(param),
+                    "the {0} parameter could not be parsed".format(param),
                     "Parameter Error"
                     )
-            else:
-                return fn(self, request, *args, **kwargs)
+            return fn(self, request, *args, **kwargs)
         return _transform
     return _wrap
 
@@ -170,3 +169,18 @@ def OnlyNewer(
                 return fn(self, request, *args, **kwargs)
         return _check
     return _wrap
+
+
+def AbsolutePermalink(protocol="https://"):
+    from django.core.urlresolvers import reverse
+    from django.contrib.sites.models import Site
+
+    def _wrap(fn):
+        def _inner(*args, **kwargs):
+            bits = fn(*args, **kwargs)
+            path = reverse(bits[0], None, *bits[1:3])
+            domain = Site.objects.get_current().domain
+            return "{0}{1}{2}".format(protocol, domain, path)
+        return _inner
+    return _wrap
+
