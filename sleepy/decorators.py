@@ -126,13 +126,14 @@ def ParameterType(**types):
 def ParameterTransform(param, func):
     def _wrap(fn):
         def _transform(self, request, *args, **kwargs):
-            try:
-                kwargs[param] = func(kwargs[param])
-            except:
-                return api_error(
-                    "the {0} parameter could not be parsed".format(param),
-                    "Parameter Error"
-                    )
+            if param in kwargs:
+                try:
+                    kwargs[param] = func(kwargs[param])
+                except:
+                    return api_error(
+                        "the {0} parameter could not be parsed".format(param),
+                        "Parameter Error"
+                        )
             return fn(self, request, *args, **kwargs)
         return _transform
     return _wrap
