@@ -1,3 +1,6 @@
+Changes in Version 0.9.23
+  Updated the ParameterTransform decorator to accomodate optional parameters
+
 Changes in Version 0.9.22
   Updated the AbsoluteParamLink decorator
 
