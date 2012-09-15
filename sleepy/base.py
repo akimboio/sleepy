@@ -56,16 +56,6 @@ class Base:
         if hasattr(self, request.method):
             result = getattr(self, request.method)(request, *args, **kwargs)
 
-        elif request.method == 'HEAD'and hasattr(self, 'GET'):
-            # Hmmm, I'm not really sure what the proper
-            # way is to generally handle HEAD requests here.  But
-            # we aren't actually making use of it atm, so it's *currently*
-            # not a big deal.
-            # I suspect it'll largely be handled by Django once we start fully
-            # utilizing it's capabilities.  For now, this makes the errors go
-            # away. #justmakeitwork ~ JCM
-            result = HttpResponse(mimetype='application/json')
-            result["Connection"] = "close"
         else:
             result = self.json_err(
                 "Resource does not support {0} for this method".format(
