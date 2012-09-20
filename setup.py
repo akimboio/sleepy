@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import os
 from setuptools import setup
@@ -17,7 +17,7 @@ os.system("pip install -r requirements.txt")
 
 setup(
     name="sleepy",
-    version="0.9.17",
+    version="0.9.23",
     author="Adam Haney",
     author_email="adam.haney@retickr.com",
     description=("""A RESTful library that is used at retickr on top"""\

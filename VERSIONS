@@ -1,3 +1,26 @@
+Changes in Version 0.9.23
+  Updated the ParameterTransform decorator to accomodate optional parameters
+
+Changes in Version 0.9.22
+  Updated the AbsoluteParamLink decorator
+
+Changes in Version 0.9.21
+  Added an AbsolutePermaLink decorator
+
+Changes in Version 0.9.20
+  Fixed a few bugs in the new decorators
+
+Changes in Version 0.9.19
+  Tons and tons of changes.
+
+  - json_out, json_err are now api_out and api_error
+  - Added many new decorators
+  - requests.REQUEST is now routed to the kwargs of a view member function
+
+
+Changes in Version 0.9.18
+  Fixed kwargs, args
+
 Changes in Version 0.9.17
   Tried further simplifying the HEAD response
 
