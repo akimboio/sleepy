@@ -151,26 +151,29 @@ def OnlyNewer(
 
             if "If-Range" in request.META:
                 newest_id = request.META["If-Range"]
-
-                # If we dont' override the way we handle responses
-                # assume they're the normal json responses with data
-                # as one of the top elements, there is a weird scoping
-                # issue that occurs here which is why we shuffle variables
-                # around like this.
-                get_elements = get_elements_func
-                if get_elements_func == None:
-                    get_elements = lambda resp: json.loads(resp)["data"]
-                    
-                build_partial = build_partial_response
-                if not build_partial_response:
-                    build_partial = lambda elements: api_out(elements)
-
-                response = fn(self, request, *args, **kwargs)
-                elements = get_elements(response)
-                elements = elements[:find(newest_id, get_identifier_func)]
-                return build_partial(elements)
+            elif "_if_range" in request.REQUEST:
+                newest_id = request.REQUEST["_if_range"]
             else:
                 return fn(self, request, *args, **kwargs)
+
+            # If we dont' override the way we handle responses
+            # assume they're the normal json responses with data
+            # as one of the top elements, there is a weird scoping
+            # issue that occurs here which is why we shuffle variables
+            # around like this.
+            get_elements = get_elements_func
+            if get_elements_func == None:
+                get_elements = lambda resp: json.loads(resp)["data"]
+
+            build_partial = build_partial_response
+            if not build_partial_response:
+                build_partial = lambda elements: api_out(elements)
+
+            response = fn(self, request, *args, **kwargs)
+            elements = get_elements(response)
+            elements = elements[:find(newest_id, get_identifier_func)]
+            return build_partial(elements)
+
         return _check
     return _wrap
 
