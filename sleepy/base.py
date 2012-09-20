@@ -50,9 +50,8 @@ class Base:
 
         # Use introspection to handle HEAD requests
         elif request.method == 'HEAD'and hasattr(self, 'GET'):
-            get_result = self.GET(request)
-            for k, v in get_result:
-                result[k] = get_result[k]
+            result = self.GET(request)
+            result.content = ""
 
         # Use introspection to handle OPTIONS requests
         elif request.method == 'OPTIONS':

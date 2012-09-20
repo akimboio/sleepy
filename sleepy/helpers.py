@@ -1,7 +1,12 @@
-from django.http import HttpResponse
+import os
 import re
 import json
 import base64
+
+import git
+from django.http import HttpResponse
+
+from responses import api_out
 
 
 def index(request, username=None, *args, **kwargs):
@@ -22,6 +27,17 @@ def index(request, username=None, *args, **kwargs):
             ),
         content_type="application/json"
         )
+
+
+def git_version(request, f_):
+    if not hasattr(git_version, "version"):
+        try:
+            repo = git.Repo(os.path.dirname(f_))
+            git_version.version = str(repo.commit())
+        except:
+            git_version.version = "unknown"
+
+    return api_out({"api_sha1": git_version.version})
 
 
 def unexpected_error(request):

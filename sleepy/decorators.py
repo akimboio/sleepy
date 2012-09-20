@@ -1,24 +1,21 @@
 """
 Sleepy Decorators
 
-Decorators that implement "guards" or functions that wrap around API methods to
-handle preconditions before functions are called. For example "in order to call
-this method the user should be authenticated", "in order to call this method
-you must pass this parameter" etc.
+These decorators implement code 'contracts' which define the context
+that decorated functions run in. These are helpful for repetitive
+tasks such as tranformation, validation, or authentication.
 
 :author: Adam Haney
-:organization: Retickr
-:contact: adam.haney@retickr.com
-:license: Copyright (c) 2011 retickr, LLC
+:organization: Akimbo
+:contact: adam.haney@akimbo.io
+:license: Copyright (c) 2011 akimbo, LLC
 """
 
-__author__ = "Adam Haney <adam.haney@retickr.com>"
-__license__ = "Copyright (c) 2011 retickr, LLC"
+__author__ = "Adam Haney <adam.haney@akimbo.io>"
+__license__ = "Copyright (c) 2011 akimbo, LLC"
 
 import json
 
-# Thirdparty imports
-from django.conf import settings
 from django.utils.decorators import wraps
 
 from sleepy.responses import api_out, api_error
@@ -154,22 +151,29 @@ def OnlyNewer(
 
             if "If-Range" in request.META:
                 newest_id = request.META["If-Range"]
-
-                # If we dont' override the way we handle responses
-                # assume they're the normal json responses with data
-                # as one of the top elements
-                if get_elements_func == None:
-                    get_elements_func = lambda resp: json.loads(resp)["data"]
-
-                if not build_partial_response:
-                    build_partial_response = lambda elements: api_out(elements)
-
-                response = fn(self, request, *args, **kwargs)
-                elements = get_elements_func(response)
-                elements = elements[:find(newest_id, get_identifier_func)]
-                return build_partial_response(elements)
+            elif "_if_range" in request.REQUEST:
+                newest_id = request.REQUEST["_if_range"]
             else:
                 return fn(self, request, *args, **kwargs)
+
+            # If we dont' override the way we handle responses
+            # assume they're the normal json responses with data
+            # as one of the top elements, there is a weird scoping
+            # issue that occurs here which is why we shuffle variables
+            # around like this.
+            get_elements = get_elements_func
+            if get_elements_func == None:
+                get_elements = lambda resp: json.loads(resp)["data"]
+
+            build_partial = build_partial_response
+            if not build_partial_response:
+                build_partial = lambda elements: api_out(elements)
+
+            response = fn(self, request, *args, **kwargs)
+            elements = get_elements(response)
+            elements = elements[:find(newest_id, get_identifier_func)]
+            return build_partial(elements)
+
         return _check
     return _wrap
 
