@@ -1,9 +1,9 @@
 dependencies:
   override:
     - virtualenv test_project/env
-    - .test_project/env/bin/easy_install -U distribute
-    - .test_project/env/bin/python setup.py install
+    - ./test_project/env/bin/easy_install -U distribute
+    - ./test_project/env/bin/python setup.py install
 
 test:
   override:
-    - ./env/bin/python manage.py test
+    - cd test_project && ./env/bin/python manage.py test
