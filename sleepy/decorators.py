@@ -144,10 +144,15 @@ def OnlyNewer(
         def _check(self, request, *args, **kwargs):
 
             def find(needle, seq):
+                """
+                Finds the index of the 'needle' in a sequence,
+                if the needle is not found the index is assumed to
+                be the length of the sequence.
+                """
                 for ii, elm in enumerate(seq):
                     if elm == needle:
                         return ii, elm
-                    return len(seq)
+                    return len(seq), seq[:-1]
 
             if "If-Range" in request.META:
                 newest_id = request.META["If-Range"]
@@ -170,8 +175,10 @@ def OnlyNewer(
                 build_partial = lambda elements: api_out(elements)
 
             response = fn(self, request, *args, **kwargs)
-            elements = get_elements(response)
-            elements = elements[:find(newest_id, get_identifier_func)]
+            elements = get_elements(response.content)
+            idx = find(newest_id,
+                    [get_identifier_func(elm) for elm in elements])
+            elements = elements[:idx[0]]
             return build_partial(elements)
 
         return _check
