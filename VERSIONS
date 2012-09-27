@@ -1,3 +1,6 @@
+Changes in VERSION 0.9.25
+  Fixes for OnlyNew decorator
+
 Changes in Version 0.9.23
   Updated the ParameterTransform decorator to accomodate optional parameters
 
