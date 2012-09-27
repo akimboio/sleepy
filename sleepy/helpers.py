@@ -30,12 +30,14 @@ def index(request, username=None, *args, **kwargs):
 
 
 def git_version(request, f_):
-    try:
-        repo = git.Repo(os.path.dirname(f_))
-        version = str(repo.commit())
-    except:
-        version = "unknown"
-    return api_out({"api_sha1": version})
+    if not hasattr(git_version, "version"):
+        try:
+            repo = git.Repo(os.path.dirname(f_))
+            git_version.version = str(repo.commit())
+        except:
+            git_version.version = "unknown"
+
+    return api_out({"api_sha1": git_version.version})
 
 
 def unexpected_error(request):

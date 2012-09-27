@@ -11,7 +11,7 @@ apis.
   conditions are met before the underlying method is called. These allow
   your method definitions to be concise.
 
-- various helper functions that have been used for apis around retickr.
+- various helper functions that have been used for apis around akimbo.
 
 
 Documentation
