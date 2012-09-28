@@ -111,3 +111,27 @@ def decode_http_basic(auth_header):
             + "with the RFC 1945 HTTP basic authentication standard "
             + "(http://tools.ietf.org/html/rfc1945) you passed "
             + "{0}".format(auth_header))
+
+def find(needle, seq):
+    """
+    Finds the index of the 'needle' in a sequence,
+    if the needle is not found the index is assumed to
+    be the length of the sequence.
+
+    >>> find("a", ["a", "b", "c"])
+    (0, 'a')
+    >>> find("c", ["a", "b", "c"])
+    (2, 'c')
+    >>> find("d", ["a", "b", "c"])
+    (3, None)
+
+    """
+    for ii, elm in enumerate(seq):
+        if elm == needle:
+            return ii, elm
+    return len(seq), None
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
+
