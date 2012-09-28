@@ -5,6 +5,17 @@ from sleepy.decorators import OnlyNewer
 from sleepy.responses import api_out
 
 class ReturnListHandler(Base):
-    @OnlyNewer(lambda x: x)
+    @OnlyNewer("id")
     def GET(self, request, *args, **kwargs):
-        return api_out(["a", "b", "c"])
+        return api_out(
+            [
+                {"id": "a"},
+                {"id": "b"},
+                {"id": "c"}
+                ],
+            {
+                "actions": {
+                    "do_something": "stuff"
+                    }
+                }
+            )
