@@ -19,6 +19,8 @@ import json
 from django.utils.decorators import wraps
 
 from sleepy.responses import api_out, api_error
+from sleepy.helpers import find
+
 
 def RequiresParameters(params):
     """
@@ -136,23 +138,9 @@ def ParameterTransform(param, func):
     return _wrap
 
 
-def OnlyNewer(
-    get_identifier_func,
-    get_elements_func=None,
-    build_partial_response=None):
+def OnlyNewer(element_key):
     def _wrap(fn):
         def _check(self, request, *args, **kwargs):
-
-            def find(needle, seq):
-                """
-                Finds the index of the 'needle' in a sequence,
-                if the needle is not found the index is assumed to
-                be the length of the sequence.
-                """
-                for ii, elm in enumerate(seq):
-                    if elm == needle:
-                        return ii, elm
-                    return len(seq), seq[:-1]
 
             if "If-Range" in request.META:
                 newest_id = request.META["If-Range"]
@@ -161,25 +149,35 @@ def OnlyNewer(
             else:
                 return fn(self, request, *args, **kwargs)
 
-            # If we dont' override the way we handle responses
-            # assume they're the normal json responses with data
-            # as one of the top elements, there is a weird scoping
-            # issue that occurs here which is why we shuffle variables
-            # around like this.
-            get_elements = get_elements_func
-            if get_elements_func == None:
-                get_elements = lambda resp: json.loads(resp)["data"]
+            # Force newest_id to be a string
+            newest_id = str(newest_id)
 
-            build_partial = build_partial_response
-            if not build_partial_response:
-                build_partial = lambda elements: api_out(elements)
-
+            # Call the underlying function and get the response
             response = fn(self, request, *args, **kwargs)
-            elements = get_elements(response.content)
-            idx = find(newest_id,
-                    [get_identifier_func(elm) for elm in elements])
-            elements = elements[:idx[0]]
-            return build_partial(elements)
+
+            # Convert to JSON
+            response = json.loads(response.content)
+
+            # Grab the full list of elements out of the response
+            elements = response["data"]
+
+            # Get the index of the element which is the "newest"
+            # element (newest) is passed in, in the list so we
+            # can slice the list and only return elements newer
+            # than that
+            idx = find(
+                newest_id,
+                [
+                    str(elm[element_key])
+                    for elm
+                    in elements
+                    ]
+                )[0]
+
+            # Replace the original data field with the sliced elements
+            response["data"] = elements[:idx]
+
+            return api_out(response)
 
         return _check
     return _wrap
