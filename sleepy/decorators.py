@@ -161,6 +161,12 @@ def OnlyNewer(element_key):
             # Grab the full list of elements out of the response
             elements = response["data"]
 
+            meta_info = {
+                k: v
+                for k, v in response.items()
+                if k != "data"
+                }
+
             # Get the index of the element which is the "newest"
             # element (newest) is passed in, in the list so we
             # can slice the list and only return elements newer
@@ -174,10 +180,7 @@ def OnlyNewer(element_key):
                     ]
                 )[0]
 
-            # Replace the original data field with the sliced elements
-            response["data"] = elements[:idx]
-
-            return api_out(response)
+            return api_out(elements[:idx], meta_info)
 
         return _check
     return _wrap
