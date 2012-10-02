@@ -160,6 +160,7 @@ def OnlyNewer(element_key):
 
             # Grab the full list of elements out of the response
             elements = response["data"]
+            actions = response.get("actions", {})
 
             # Get the index of the element which is the "newest"
             # element (newest) is passed in, in the list so we
@@ -174,10 +175,7 @@ def OnlyNewer(element_key):
                     ]
                 )[0]
 
-            # Replace the original data field with the sliced elements
-            response["data"] = elements[:idx]
-
-            return api_out(response)
+            return api_out(elements[:idx], {'actions': actions})
 
         return _check
     return _wrap
