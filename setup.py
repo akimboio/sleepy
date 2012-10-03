@@ -15,7 +15,7 @@ os.system("pip install -r requirements.txt")
 
 setup(
     name="sleepy",
-    version="0.9.27",
+    version="0.9.27.1",
     author="Adam Haney",
     author_email="adam.haney@retickr.com",
     description=("""A RESTful library that is used at retickr on top"""\
@@ -25,9 +25,10 @@ setup(
     url="http://about.retickr.com",
     packages=['sleepy'],
     long_description=read('README'),
-    dependency_links = [
+    dependency_links = [],
+    install_requires=[
+        "gitpython==0.3.2.RC1"
         ],
-    install_requires=[],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Topic :: Framework",
