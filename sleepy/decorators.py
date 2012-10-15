@@ -159,7 +159,12 @@ def OnlyNewer(element_key):
             response = json.loads(response.content)
 
             # Grab the full list of elements out of the response
-            elements = response["data"]
+            if "error" in response:
+                return api_error(
+                    response["error"]["message"],
+                    error_type=response["error"]["type"])
+
+            elements = response["data"]["stories"]
 
             meta_info = {
                 k: v
