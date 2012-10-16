@@ -185,7 +185,7 @@ def OnlyNewer(element_key):
                     ]
                 )[0]
 
-            return api_out(elements[:idx], meta_info)
+            return api_out({"stories": elements[:idx]}, meta_info)
 
         return _check
     return _wrap
