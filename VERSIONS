@@ -1,3 +1,6 @@
+Changes in VERSION 0.9.29
+  Tweaked the output of the OnlyNewer decorator
+
 Changes in VERSION 0.9.28
   Fixed a bug in the OnlyNewer decorator
     (can now handle 'error' responses)
