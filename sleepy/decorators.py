@@ -236,7 +236,7 @@ def set_value_for_keypath(dict, keypath, value):
         return None
     
 
-def OnlyNewer(element_key, keypath="data"):
+def OnlyNewer(element_key, keypath="data.stories"):
     def _wrap(fn):
         def _check(self, request, *args, **kwargs):
             if "If-Range" in request.META:
