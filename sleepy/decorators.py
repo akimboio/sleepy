@@ -138,10 +138,31 @@ def ParameterTransform(param, func):
     return _wrap
 
 
-def OnlyNewer(element_key):
+def value_for_keypath(dict, keypath):
+    keys = keypath.split('.')
+    value = dict
+    for key in keys:
+        if key in value:
+            value = value[key]
+        else:
+            value = None
+    return value
+
+def set_value_for_keypath(dict, keypath, value):
+    keys = keypath.split('.')
+    if len(keys) > 1:
+        key = keys[0]
+        if key in dict:
+            set_value_for_keypath(dict[key], '.'.join(keys[1:]), value)
+        return
+    
+    if keypath in dict:
+        dict[keypath] = value
+    
+
+def OnlyNewer(element_key, keypath="data"):
     def _wrap(fn):
         def _check(self, request, *args, **kwargs):
-
             if "If-Range" in request.META:
                 newest_id = request.META["If-Range"]
             elif "_if_range" in request.REQUEST:
@@ -164,7 +185,8 @@ def OnlyNewer(element_key):
                     response["error"]["message"],
                     error_type=response["error"]["type"])
 
-            elements = response["data"]["stories"]
+            elements = value_for_keypath(response, keypath)
+#            elements = response["data"]["stories"]
 
             meta_info = {
                 k: v
@@ -184,8 +206,11 @@ def OnlyNewer(element_key):
                     in elements
                     ]
                 )[0]
-
-            return api_out(elements[:idx], meta_info)
+            
+#            response["data"]["stories"] = elements[:idx]
+            set_value_for_keypath(response, keypath, elements[:idx])
+            
+            return api_out(response["data"], meta_info)
 
         return _check
     return _wrap
