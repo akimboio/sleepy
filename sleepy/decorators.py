@@ -186,7 +186,6 @@ def OnlyNewer(element_key, keypath="data"):
                     error_type=response["error"]["type"])
 
             elements = value_for_keypath(response, keypath)
-#            elements = response["data"]["stories"]
 
             meta_info = {
                 k: v
@@ -207,7 +206,6 @@ def OnlyNewer(element_key, keypath="data"):
                     ]
                 )[0]
             
-#            response["data"]["stories"] = elements[:idx]
             set_value_for_keypath(response, keypath, elements[:idx])
             
             return api_out(response["data"], meta_info)

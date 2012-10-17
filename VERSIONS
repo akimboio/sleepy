@@ -1,3 +1,12 @@
+Changes in VERSION 0.9.29
+  Tweaked the output of the OnlyNewer decorator
+
+Changes in VERSION 0.9.28
+  Fixed a bug in the OnlyNewer decorator
+    (can now handle 'error' responses)
+  Updated the OnlyNewer decorator to handle
+    a change in the format of the stream call
+
 Changes in VERSION 0.9.27
   Version bump
 
