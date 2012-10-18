@@ -19,7 +19,7 @@ import json
 from django.utils.decorators import wraps
 
 from sleepy.responses import api_out, api_error
-from sleepy.helpers import find
+from sleepy.helpers import find, value_for_keypath, set_value_for_keypath
 
 
 def RequiresParameters(params):
@@ -138,10 +138,9 @@ def ParameterTransform(param, func):
     return _wrap
 
 
-def OnlyNewer(element_key):
+def OnlyNewer(element_key, keypath="data.stories"):
     def _wrap(fn):
         def _check(self, request, *args, **kwargs):
-
             if "If-Range" in request.META:
                 newest_id = request.META["If-Range"]
             elif "_if_range" in request.REQUEST:
@@ -164,7 +163,7 @@ def OnlyNewer(element_key):
                     response["error"]["message"],
                     error_type=response["error"]["type"])
 
-            elements = response["data"]["stories"]
+            elements = value_for_keypath(response, keypath)
 
             meta_info = {
                 k: v
@@ -184,8 +183,10 @@ def OnlyNewer(element_key):
                     in elements
                     ]
                 )[0]
-
-            return api_out({"stories": elements[:idx]}, meta_info)
+            
+            set_value_for_keypath(response, keypath, elements[:idx])
+            
+            return api_out(response["data"], meta_info)
 
         return _check
     return _wrap
@@ -203,3 +204,7 @@ def AbsolutePermalink(func, protocol="https://"):
         return u"{0}{1}{2}".format(protocol, domain, path)
     return inner
 
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
