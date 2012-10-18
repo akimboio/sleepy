@@ -1,3 +1,6 @@
+Changes in VERSION 0.9.30
+  Updated the OnlyNewer decorator to be a bit more flexible
+
 Changes in VERSION 0.9.29
   Tweaked the output of the OnlyNewer decorator
 
