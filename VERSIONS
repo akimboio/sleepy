@@ -1,3 +1,7 @@
+Changes in VERSION 0.9.31
+  Renamed some functions nested within decorators to be more verbosely named
+  (this should ease in some profile-based optimizations)
+
 Changes in VERSION 0.9.30
   Updated the OnlyNewer decorator to be a bit more flexible
 
