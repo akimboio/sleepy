@@ -30,7 +30,7 @@ def RequiresParameters(params):
     an error and bails out
     """
     def _wrap(fn):
-        def _check(self, request, *args, **kwargs):
+        def _requires_parameters_check(self, request, *args, **kwargs):
             if set(params) <= set(request.REQUEST):
                 return fn(self, request, *args, **kwargs)
             else:
@@ -41,7 +41,7 @@ def RequiresParameters(params):
                         set(params) - set(request.REQUEST)
                         )
                     )
-        return _check
+        return _requires_parameters_check
     return _wrap
 
 
@@ -59,7 +59,7 @@ def RequiresUrlAttribute(param):
     doing that which hopefully eliminates the length of methods
     """
     def _wrap(fn):
-        def _check(self, request, *args, **kwargs):
+        def _requires_url_attribute_check(self, request, *args, **kwargs):
             if param in kwargs:
                 return fn(self, request, *args, **kwargs)
             else:
@@ -70,13 +70,13 @@ def RequiresUrlAttribute(param):
                         param
                         )
                     )
-        return _check
+        return _requires_url_attribute_check
     return _wrap
 
 
 def ParameterAssert(param, func, description):
     def _wrap(fn):
-        def _check(self, request, *args, **kwargs):
+        def _parameter_assert_check(self, request, *args, **kwargs):
             if param in kwargs and not func(kwargs[param]):
                 return api_error(
                     "{0} {1}".format(param, description),
@@ -84,13 +84,13 @@ def ParameterAssert(param, func, description):
                     )
             else:
                 return fn(self, request, *args, **kwargs)
-        return _check
+        return _parameter_assert_check
     return _wrap
 
 
 def ParameterType(**types):
     def _wrap(fn):
-        def _check(self, request, *args, **kwargs):
+        def _parameter_type_check(self, request, *args, **kwargs):
             for param, type_ in types.items():
                 try:
                     kwargs[param] = type_(kwargs[param])
@@ -118,7 +118,7 @@ def ParameterType(**types):
                         )
 
             return fn(self, request, *args, **kwargs)
-        return _check
+        return _parameter_type_check
     return _wrap
 
 
@@ -140,7 +140,7 @@ def ParameterTransform(param, func):
 
 def OnlyNewer(element_key, keypath="data.stories"):
     def _wrap(fn):
-        def _check(self, request, *args, **kwargs):
+        def _only_newer_check(self, request, *args, **kwargs):
             if "If-Range" in request.META:
                 newest_id = request.META["If-Range"]
             elif "_if_range" in request.REQUEST:
@@ -183,12 +183,12 @@ def OnlyNewer(element_key, keypath="data.stories"):
                     in elements
                     ]
                 )[0]
-            
+
             set_value_for_keypath(response, keypath, elements[:idx])
-            
+
             return api_out(response["data"], meta_info)
 
-        return _check
+        return _only_newer_check
     return _wrap
 
 
