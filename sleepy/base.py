@@ -15,6 +15,8 @@ __license__ = "Copyright (c) 2011 Retickr"
 HTTP_READ_ONLY_METHODS = ['GET', 'HEAD', 'OPTIONS']
 HTTP_METHODS = HTTP_READ_ONLY_METHODS + ['POST', 'PUT', 'DELETE']
 
+import django.http
+
 from django.conf import settings
 
 from responses import api_error
@@ -41,6 +43,14 @@ class Base:
         if (self.read_only == True
             and request.method not in HTTP_READ_ONLY_METHODS):
             return api_error("the API is in read only mode for maintenance")
+
+        if request.method == "PUT":
+            query_dict = django.http.QueryDict(request.body)
+            request.PUT = {
+                k: v
+                for k, v
+                in query_dict.items()}
+            kwargs.update(request.PUT)
 
         # Addd requests to kwargs
         kwargs.update(request.REQUEST)
