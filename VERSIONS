@@ -1,3 +1,6 @@
+Changes in VERSION 0.9.32
+  Better handling of PUT data
+
 Changes in VERSION 0.9.31
   Renamed some functions nested within decorators to be more verbosely named
   (this should ease in some profile-based optimizations)
