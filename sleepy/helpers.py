@@ -180,7 +180,7 @@ def value_for_keypath(dict, keypath):
     return value
 
 
-def set_value_for_keypath(dict, keypath, value):
+def set_value_for_keypath(dict_, keypath, value, create_if_needed=False):
     """
     Sets the value for a keypath in a dictionary
     if the keypath exists. This modifies the
@@ -211,6 +211,12 @@ def set_value_for_keypath(dict, keypath, value):
     >>> set_value_for_keypath({'fruit': {'apple': {'color': 'red'}}}, 'fruit.apple.color', 'green')
     {'fruit': {'apple': {'color': 'green'}}}
     
+    >>> set_value_for_keypath({'fruit': {'apple': {'color': 'red'}}}, 'fruit.apple.color', {'puppies': {'count': 10, 'breed':'boxers'}})
+    {'fruit': {'apple': {'color': {'puppies': {'count': 10, 'breed': 'boxers'}}}}}
+    
+    >>> set_value_for_keypath({'fruit': {'apple': {'color': 'red'}}}, 'fruit.apple.animals', {'puppies': {'count': 10, 'breed':'boxers'}}, create_if_needed=True)
+    {'fruit': {'apple': {'color': 'red', 'animals': {'puppies': {'count': 10, 'breed': 'boxers'}}}}}
+    
     """
     
     if len(keypath) == 0:
@@ -219,14 +225,23 @@ def set_value_for_keypath(dict, keypath, value):
     keys = keypath.split('.')
     if len(keys) > 1:
         key = keys[0]
-        if key in dict:
-            if set_value_for_keypath(dict[key], '.'.join(keys[1:]), value):
-                return dict
+
+        if create_if_needed:
+            dict_[key] = dict_.get(key, {})
+
+        if key in dict_:
+            if set_value_for_keypath(dict_[key], '.'.join(keys[1:]), value,
+                create_if_needed=create_if_needed):
+                return dict_
+
         return None
     
-    if keypath in dict:
-        dict[keypath] = value
-        return dict
+    if create_if_needed:
+        dict_[keypath] = dict_.get(keypath, {})
+
+    if keypath in dict_:
+        dict_[keypath] = value
+        return dict_
     else:
         return None
     
