@@ -84,7 +84,7 @@ class PaginationTestWithDefaultArgs(TestCase):
                 response["data"]["stories"]))
 
         # Verify that the older link gives the next page of data
-        actions = response["actions"]
+        actions = response["data"]["actions"]
 
         older_api_call = actions["older"]["endpoint"]
 
@@ -130,7 +130,7 @@ class PaginationTestWithOffset(TestCase):
                 expected_output,
                 response["data"]["stories"]))
 
-        self.actions = response['actions']
+        self.actions = response["data"]['actions']
 
     def test_older_action_with_offset(self):
         """
@@ -205,7 +205,7 @@ class PaginationTestWithOffsetAndIfRange(TestCase):
                 expected_output,
                 response["data"]["stories"]))
 
-        self.actions = response['actions']
+        self.actions = response["data"]['actions']
 
     def test_older_action_with_offset_and_if_range(self):
         """
@@ -232,7 +232,7 @@ class PaginationTestWithOffsetAndIfRange(TestCase):
                 expected_output,
                 response["data"]["stories"]))
 
-        self.actions = response['actions']
+        self.actions = response["data"]['actions']
 
     def test_newer_action_with_offset_and_if_range(self):
         # Verify that the older link gives the next page of data
@@ -257,4 +257,4 @@ class PaginationTestWithOffsetAndIfRange(TestCase):
                 expected_output,
                 response["data"]["stories"]))
 
-        self.actions = response['actions']
+        self.actions = response["data"]['actions']

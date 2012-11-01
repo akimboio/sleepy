@@ -297,7 +297,7 @@ def Paginate(
 
             set_value_for_keypath(response, keypath, elements)
 
-            meta_info['actions'] = build_pagination_links(
+            response["data"]['actions'] = build_pagination_links(
                 newest_id,
                 param_dict,
                 offset,
@@ -305,7 +305,7 @@ def Paginate(
 
             return api_out(response["data"], meta_info)
 
-        return _only_newer_check
+        return _paginate_check
     return _wrap
 
 
