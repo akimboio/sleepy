@@ -1,3 +1,7 @@
+Changes in VERSION 0.9.33
+  Replaced the OnlyNewer decorator with
+  a Paginate decorator.
+
 Changes in VERSION 0.9.32
   Better handling of PUT data
 
