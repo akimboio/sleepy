@@ -26,7 +26,7 @@ from django.utils.decorators import wraps
 # Akimbo imports
 from sleepy.responses import api_out, api_error
 from sleepy.helpers import find, value_for_keypath, set_value_for_keypath
-from retickrtools.misc import str2bool
+from sleepy.helpers import str2bool
 
 
 def RequiresParameters(params):

@@ -9,6 +9,27 @@ from django.http import HttpResponse
 from responses import api_out
 
 
+def str2bool(str_):
+    """
+    Convert a string representation of a boolean value into
+    an actual boolean value.
+
+    >>> str2bool('False')
+    False
+    >>> str2bool('false')
+    False
+    >>> str2bool('True')
+    True
+    >>> str2bool('true')
+    True
+    """
+    str_ = str_.strip().lower()
+
+    if "true" == str_:
+        return True
+    elif "false" == str_:
+        return False
+
 def index(request, username=None, *args, **kwargs):
     """
     a convenience function, since no methods support root access this
