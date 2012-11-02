@@ -217,9 +217,27 @@ def Paginate(
                 param_pair_list = []
 
                 for param_pair in parse_result.query.split("&"):
-                    equal_idx = param_pair.index("=")
+                    # Three cases we need to be aware of here
+                    # 1) GET_VAR=VAL
+                    #       The ideal and expected case.  Easily parsable.
+                    # 2) GET_VAR
+                    #       no variable provided
+                    # 3) GET_VAR_1=VAL& (splitting on '&') will yield ['GET_VAR_1=VAL', '']
+                    #       and '' must be handled as a special case
+                    if 0 == len(param_pair):
+                        # Handle case 3
+                        continue
 
-                    param_pair_list.append((param_pair[:equal_idx], param_pair[equal_idx+1:]))
+                    try:
+                        # Handle case 1
+                        equal_idx = param_pair.index("=")
+
+                        param_tuple = (param_pair[:equal_idx], param_pair[equal_idx+1:])
+                    except ValueError:
+                        # Handle case 2
+                        param_tuple = (param_pair, '')
+
+                    param_pair_list.append(param_tuple)
 
                 param_dict = dict(param_pair_list)
             else:
