@@ -1,3 +1,4 @@
 # Public packages
 Django==1.4
 gitpython==0.3.2.RC1
+datadiff
