@@ -7,53 +7,12 @@ Replace this with more appropriate tests for your application.
 
 # Universe imports
 import json
+import urlparse
 
 # Third party imports
 from django.test import TestCase, Client
 
-
-class SimpleTest(TestCase):
-    def setUp(self):
-        self.client = Client()
-
-    def test_no_get_variable(self):
-        response = self.client.get(
-            "/simple_test_list")
-        response = json.loads(response.content)
-
-        expected_output = [{"id": "a"}, {"id":"b"}, {"id":"c"}]
-
-        assert response["data"]["stories"] == expected_output, (
-            "Expected: '{0}', received: '{1}'".format(
-                expected_output,
-                response["data"]["stories"]))
-
-    def test_if_range_get_variable(self):
-        response = self.client.get(
-            "/simple_test_list",
-            {"_if_range": "b"})
-        response = json.loads(response.content)
-
-        expected_output = [{"id":"a"}]
-
-        assert response["data"]["stories"] == expected_output, (
-            "Expected: '{0}', received: '{1}'".format(
-                expected_output,
-                response["data"]["stories"]))
-
-
-    def test_if_range_header(self):
-        response = self.client.get(
-            "/simple_test_list",
-            **{"If-Range":"b"})
-        response = json.loads(response.content)
-
-        expected_output = [{"id":"a"}]
-
-        assert response["data"]["stories"] == expected_output, (
-            "Expected: '{0}', received: '{1}'".format(
-                expected_output,
-                response["data"]["stories"]))
+from datadiff.tools import assert_equal
 
 
 class PaginationTestWithDefaultArgs(TestCase):
@@ -67,194 +26,191 @@ class PaginationTestWithDefaultArgs(TestCase):
     def setUp(self):
         self.client = Client()
 
-    def test_older_action_with_default_args(self):
         response = self.client.get(
             "/complex_test_list")
         response = json.loads(response.content)
 
-        # Verify expected output
-        expected_output = [
-            {"id": idx}
-            for idx
-            in range(25)]
+        self.actions = response['data']['actions']
 
-        assert response["data"]["stories"] == expected_output, (
-            "Expected: '{0}', received: '{1}'".format(
-                expected_output,
-                response["data"]["stories"]))
-
+    def test_older_action_with_default_args(self):
         # Verify that the older link gives the next page of data
-        actions = response["data"]["actions"]
-
-        older_api_call = actions["older"]["endpoint"]
+        older_api_call = self.actions["older"]["endpoint"]
 
         # Remove the parts that reference a domain
-        api_path = older_api_call.replace(
-            self.test_server_domain, "")
+        parse_obj = urlparse.urlparse(older_api_call)
 
-        response2 = self.client.get(
-            api_path
-            )
-        response2 = json.loads(response2.content)
+        actual_query_dict = dict([
+            param_pair.split('=')
+            for param_pair
+            in parse_obj.query.split('&')])
 
-        expected_output2 = [
-            {"id": idx}
-            for idx
-            in range(25, 50)]
+        expected_query_dict = {
+            "ref_time": "0",
+            "get_older": "True",
+            "offset": "25",
+            "num_stories": "25",
+        }
 
-        assert response2["data"]["stories"] == expected_output2, (
-            "Expected: '{0}', received: '{1}'".format(
-                expected_output2,
-                response2["data"]["stories"]))
+        assert_equal(
+            expected_query_dict,
+            actual_query_dict,
+            "\n\n\tExpected: {0}, \n\n\tReceived: {1}".format(
+                expected_query_dict, actual_query_dict))
+
+    def test_newer_action_with_default_args(self):
+        # Verify that the older link gives the next page of data
+        newer_api_call = self.actions["newer"]["endpoint"]
+
+        # Remove the parts that reference a domain
+        parse_obj = urlparse.urlparse(newer_api_call)
+
+        actual_query_dict = dict([
+            param_pair.split('=')
+            for param_pair
+            in parse_obj.query.split('&')])
+
+        expected_query_dict = {
+            "ref_time": "0",
+            "get_older": "False",
+            "offset": "0",
+            "num_stories": "25",
+        }
+
+        assert_equal(
+            expected_query_dict,
+            actual_query_dict,
+            "\n\n\tExpected: {0}, \n\n\tReceived: {1}".format(
+                expected_query_dict, actual_query_dict))
 
 
 class PaginationTestWithOffset(TestCase):
     test_server_domain = "http://testserver"
 
     def setUp(self):
+        self.client = Client()
+
         response = self.client.get(
             "/complex_test_list",
             {
-                "offset": 30
-            })
+                "offset":50
+                })
         response = json.loads(response.content)
 
-        # Verify expected output
-        expected_output = [
-            {"id": idx}
-            for idx
-            in range(30, 55)]
-
-        assert response["data"]["stories"] == expected_output, (
-            "Expected: '{0}', received: '{1}'".format(
-                expected_output,
-                response["data"]["stories"]))
-
-        self.actions = response["data"]['actions']
+        self.actions = response['data']['actions']
 
     def test_older_action_with_offset(self):
         """
         """
-        # Verify that the older link gives the next page of data
         older_api_call = self.actions["older"]["endpoint"]
 
         # Remove the parts that reference a domain
-        api_path = older_api_call.replace(
-            self.test_server_domain, "")
+        parse_obj = urlparse.urlparse(older_api_call)
 
-        response = self.client.get(
-            api_path
-            )
-        response = json.loads(response.content)
+        actual_query_dict = dict([
+            param_pair.split('=')
+            for param_pair
+            in parse_obj.query.split('&')])
 
-        expected_output = [
-            {"id": idx}
-            for idx
-            in range(55, 80)]
+        expected_query_dict = {
+            "ref_time": "0",
+            "get_older": "True",
+            "offset": "75",
+            "num_stories": "25",
+        }
 
-        assert response["data"]["stories"] == expected_output, (
-            "Expected: '{0}', received: '{1}'".format(
-                expected_output,
-                response["data"]["stories"]))
+        assert_equal(
+            expected_query_dict,
+            actual_query_dict,
+            "\n\n\tExpected: {0}, \n\n\tReceived: {1}".format(
+                expected_query_dict, actual_query_dict))
 
     def test_newer_action_with_offset(self):
-        # Verify that the older link gives the next page of data
         newer_api_call = self.actions["newer"]["endpoint"]
 
         # Remove the parts that reference a domain
-        api_path = newer_api_call.replace(
-            self.test_server_domain, "")
+        parse_obj = urlparse.urlparse(newer_api_call)
 
-        response = self.client.get(
-            api_path
-            )
-        response = json.loads(response.content)
+        actual_query_dict = dict([
+            param_pair.split('=')
+            for param_pair
+            in parse_obj.query.split('&')])
 
-        expected_output = [
-            {"id": idx}
-            for idx
-            in range(5, 30)]
+        expected_query_dict = {
+            "ref_time": "0",
+            "get_older": "False",
+            "offset": "25",
+            "num_stories": "25",
+        }
 
-        assert response["data"]["stories"] == expected_output, (
-            "Expected: '{0}', received: '{1}'".format(
-                expected_output,
-                response["data"]["stories"]))
+        assert_equal(
+            expected_query_dict,
+            actual_query_dict,
+            "\n\n\tExpected: {0}, \n\n\tReceived: {1}".format(
+                expected_query_dict, actual_query_dict))
 
 
-class PaginationTestWithOffsetAndIfRange(TestCase):
+class PaginationTestWithOffsetAndRefTime(TestCase):
     test_server_domain = "http://testserver"
 
     def setUp(self):
+        self.client = Client()
+
         response = self.client.get(
             "/complex_test_list",
             {
-                "offset": 30,
-                "_if_range": 10,
-                "_get_older": True,
+                "offset":50,
+                "ref_time":30,
             })
         response = json.loads(response.content)
 
-        # Verify expected output
-        expected_output = [
-            {"id": idx}
-            for idx
-            in range(40, 65)]
-
-        assert response["data"]["stories"] == expected_output, (
-            "Expected: '{0}', received: '{1}'".format(
-                expected_output,
-                response["data"]["stories"]))
-
-        self.actions = response["data"]['actions']
+        self.actions = response['data']['actions']
 
     def test_older_action_with_offset_and_if_range(self):
         """
         """
-        # Verify that the older link gives the next page of data
         older_api_call = self.actions["older"]["endpoint"]
 
         # Remove the parts that reference a domain
-        api_path = older_api_call.replace(
-            self.test_server_domain, "")
+        parse_obj = urlparse.urlparse(older_api_call)
 
-        response = self.client.get(
-            api_path
-            )
-        response = json.loads(response.content)
+        actual_query_dict = dict([
+            param_pair.split('=')
+            for param_pair
+            in parse_obj.query.split('&')])
 
-        expected_output = [
-            {"id": idx}
-            for idx
-            in range(65, 90)]
+        expected_query_dict = {
+            "ref_time": "30",
+            "get_older": "True",
+            "offset": "75",
+            "num_stories": "25",
+        }
 
-        assert response["data"]["stories"] == expected_output, (
-            "Expected: '{0}', received: '{1}'".format(
-                expected_output,
-                response["data"]["stories"]))
-
-        self.actions = response["data"]['actions']
+        assert_equal(
+            expected_query_dict,
+            actual_query_dict,
+            "\n\n\tExpected: {0}, \n\n\tReceived: {1}".format(
+                expected_query_dict, actual_query_dict))
 
     def test_newer_action_with_offset_and_if_range(self):
-        # Verify that the older link gives the next page of data
-        older_api_call = self.actions["newer"]["endpoint"]
+        newer_api_call = self.actions["newer"]["endpoint"]
 
         # Remove the parts that reference a domain
-        api_path = older_api_call.replace(
-            self.test_server_domain, "")
+        parse_obj = urlparse.urlparse(newer_api_call)
 
-        response = self.client.get(
-            api_path
-            )
-        response = json.loads(response.content)
+        actual_query_dict = dict([
+            param_pair.split('=')
+            for param_pair
+            in parse_obj.query.split('&')])
 
-        expected_output = [
-            {"id": idx}
-            for idx
-            in range(5, 10)]
+        expected_query_dict = {
+            "ref_time": "30",
+            "get_older": "False",
+            "offset": "25",
+            "num_stories": "25",
+        }
 
-        assert response["data"]["stories"] == expected_output, (
-            "Expected: '{0}', received: '{1}'".format(
-                expected_output,
-                response["data"]["stories"]))
-
-        self.actions = response["data"]['actions']
+        assert_equal(
+            expected_query_dict,
+            actual_query_dict,
+            "\n\n\tExpected: {0}, \n\n\tReceived: {1}".format(
+                expected_query_dict, actual_query_dict))

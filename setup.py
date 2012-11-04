@@ -28,6 +28,7 @@ setup(
     dependency_links = [],
     install_requires=[
         "gitpython==0.3.2.RC1"
+        "datadiff"
         ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
