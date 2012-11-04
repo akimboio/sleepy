@@ -17,7 +17,6 @@ __license__ = "Copyright (c) 2011 akimbo, LLC"
 # Universe imports
 import json
 import urlparse
-import urllib
 import copy
 
 # Thirdparty imports
@@ -156,13 +155,31 @@ def AttachPaginationLinks(
                     param_dict,
                     ref_time,
                     offset,
-                    num_stories):
+                    num_stories,
+                    elements_returned):
+
+                def rebuild_query_string(param_dict):
+                    """
+                    Why not just use urllib.urlencode?
+                    Because it urlencodes all parameters,
+                    and when those parameters are already
+                    encoded, that causes somee problems.
+                    """
+                    return "&".join([
+                        "=".join([str(tuple_[0]), str(tuple_[1])])
+                        for tuple_
+                        in param_dict.items()
+                        ])
+
                 older_params = copy.copy(param_dict)
                 newer_params = copy.copy(param_dict)
 
                 # Update some of the params for pagination purposes
-                older_params["offset"] = offset + num_stories
-                newer_params["offset"] = max(0, offset - num_stories)
+                if elements_returned:
+                    # We only update the offsets if we actually
+                    # returned elements with this call
+                    older_params["offset"] = offset + num_stories
+                    newer_params["offset"] = max(0, offset - num_stories)
 
                 older_params["num_stories"] = num_stories
                 newer_params["num_stories"] = num_stories
@@ -179,7 +196,7 @@ def AttachPaginationLinks(
                     'newer': {
                         'endpoint': "{0}?{1}".format(
                             endpoint,
-                            urllib.urlencode(newer_params)
+                            rebuild_query_string(newer_params),
                         ),
                         'http_method': 'GET',
                         'name': 'Newer Stories'
@@ -187,7 +204,7 @@ def AttachPaginationLinks(
                     'older': {
                         'endpoint': "{0}?{1}".format(
                             endpoint,
-                            urllib.urlencode(older_params)
+                            rebuild_query_string(older_params),
                         ),
                         'http_method': 'GET',
                         'name': 'Older Stories'
@@ -280,11 +297,14 @@ def AttachPaginationLinks(
                 else:
                     ref_time = None
 
+            elements_returned = (0 < len(elements))
+
             response["data"]['actions'] = build_pagination_links(
                 param_dict,
                 ref_time,
                 offset,
-                num_stories)
+                num_stories,
+                elements_returned)
 
             return api_out(response["data"], meta_info)
 
