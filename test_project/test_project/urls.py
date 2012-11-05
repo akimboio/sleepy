@@ -4,11 +4,10 @@ from django.conf.urls import patterns, url
 # from django.contrib import admin
 # admin.autodiscover()
 
-from testapp.views import ReturnSimpleListHandler, ReturnComplexListHandler
+from testapp.views import ReturnComplexListHandler
 
 urlpatterns = patterns(
     '',
-    url(r'simple_test_list', ReturnSimpleListHandler()),
     url(r'complex_test_list', ReturnComplexListHandler()),
     # Examples:
     # url(r'^$', 'test_project.views.home', name='home'),

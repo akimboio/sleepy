@@ -17,7 +17,6 @@ __license__ = "Copyright (c) 2011 akimbo, LLC"
 # Universe imports
 import json
 import urlparse
-import urllib
 import copy
 
 # Thirdparty imports
@@ -25,8 +24,7 @@ from django.utils.decorators import wraps
 
 # Akimbo imports
 from sleepy.responses import api_out, api_error
-from sleepy.helpers import find, value_for_keypath, set_value_for_keypath
-from sleepy.helpers import str2bool
+from sleepy.helpers import value_for_keypath
 
 
 def RequiresParameters(params):
@@ -145,7 +143,7 @@ def ParameterTransform(param, func):
     return _wrap
 
 
-def Paginate(
+def AttachPaginationLinks(
         element_key,
         keypath="data.stories",
         pagination_keypath="data.actions",
@@ -154,33 +152,51 @@ def Paginate(
     def _wrap(fn):
         def _paginate_check(self, request, *args, **kwargs):
             def build_pagination_links(
-                    newest_id,
                     param_dict,
+                    ref_time,
                     offset,
-                    num_stories):
+                    num_stories,
+                    elements_returned):
+
+                def rebuild_query_string(param_dict):
+                    """
+                    Why not just use urllib.urlencode?
+                    Because it urlencodes all parameters,
+                    and when those parameters are already
+                    encoded, that causes somee problems.
+                    """
+                    return "&".join([
+                        "=".join([str(tuple_[0]), str(tuple_[1])])
+                        for tuple_
+                        in param_dict.items()
+                        ])
+
                 older_params = copy.copy(param_dict)
                 newer_params = copy.copy(param_dict)
 
                 # Update some of the params for pagination purposes
-                older_params["offset"] = offset + num_stories
-                newer_params["offset"] = max(0, offset - num_stories)
+                if elements_returned:
+                    # We only update the offsets if we actually
+                    # returned elements with this call
+                    older_params["offset"] = offset + num_stories
+                    newer_params["offset"] = max(0, offset - num_stories)
 
                 older_params["num_stories"] = num_stories
                 newer_params["num_stories"] = num_stories
 
-                if newest_id:
-                    older_params["_if_range"] = newest_id
-                    newer_params["_if_range"] = newest_id
+                if ref_time:
+                    older_params["ref_time"] = ref_time
+                    newer_params["ref_time"] = ref_time
 
-                older_params["_get_older"] = True
-                newer_params["_get_older"] = False
+                older_params["get_older"] = True
+                newer_params["get_older"] = False
 
                 # Build the endpoints
                 actions = {
                     'newer': {
                         'endpoint': "{0}?{1}".format(
                             endpoint,
-                            urllib.urlencode(newer_params)
+                            rebuild_query_string(newer_params),
                         ),
                         'http_method': 'GET',
                         'name': 'Newer Stories'
@@ -188,7 +204,7 @@ def Paginate(
                     'older': {
                         'endpoint': "{0}?{1}".format(
                             endpoint,
-                            urllib.urlencode(older_params)
+                            rebuild_query_string(older_params),
                         ),
                         'http_method': 'GET',
                         'name': 'Older Stories'
@@ -248,16 +264,8 @@ def Paginate(
                 'offset', default_offset))
             num_stories = int(param_dict.get(
                 'num_stories', default_num_stories))
-
-            get_older = str2bool(param_dict.get(
-                '_get_older', 'False'))
-
-            if "If-Range" in request.META:
-                newest_id = request.META["If-Range"]
-            elif "_if_range" in request.REQUEST:
-                newest_id = request.REQUEST["_if_range"]
-            else:
-                newest_id = None
+            ref_time = param_dict.get(
+                'ref_time', None)
 
             # Call the underlying function and get the response
             response = fn(self, request, *args, **kwargs)
@@ -265,61 +273,38 @@ def Paginate(
             # Convert to JSON
             response = json.loads(response.content)
 
-            meta_info = {
-                k: v
-                for k, v in response.items()
-                if k != "data"
-                }
-
             # Grab the full list of elements out of the response
             if "error" in response:
                 return api_error(
                     response["error"]["message"],
                     error_type=response["error"]["type"])
 
+            meta_info = {
+                k: v
+                for k, v in response.items()
+                if k != "data"
+                }
+
             # Access the elements being returned
             elements = value_for_keypath(response, keypath)
 
-            if newest_id:
-                # Force newest_id to be a string
-                newest_id = str(newest_id)
-
-                # Get the index of the element which is the "newest"
-                # element (newest) is passed in, in the list so we
-                # can slice the list and only return elements newer
-                # than that
-                idx = find(
-                    newest_id,
-                    [
-                        str(elm[element_key])
-                        for elm
-                        in elements
-                        ]
-                    )[0]
-
-                if get_older:
-                    elements = elements[idx:]
-                else:
-                    elements = elements[:idx]
-            else:
-                # No newest_id was passed in, so instaed
-                # we select one so that we can paginate
+            if not ref_time:
+                # No ref_time was passed in, so instaed
+                # we select the newest update_time so that we can paginate
                 # properly
                 if len(elements) > 0:
-                    newest_id = elements[0][element_key]
+                    ref_time = elements[0][element_key]
                 else:
-                    newest_id = None
+                    ref_time = None
 
-            # Select a 'page' of elements
-            elements = elements[offset:offset + num_stories]
-
-            set_value_for_keypath(response, keypath, elements)
+            elements_returned = (0 < len(elements))
 
             response["data"]['actions'] = build_pagination_links(
-                newest_id,
                 param_dict,
+                ref_time,
                 offset,
-                num_stories)
+                num_stories,
+                elements_returned)
 
             return api_out(response["data"], meta_info)
 
