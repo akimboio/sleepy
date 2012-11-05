@@ -219,8 +219,7 @@ def AttachPaginationLinks(
 
             # Construct the endpoint we will be using
             # for pagination
-            endpoint = "{0}://{1}{2}".format(
-                parse_result.scheme,
+            endpoint = "https://{0}{1}".format(
                 parse_result.netloc,
                 parse_result.path)
 
