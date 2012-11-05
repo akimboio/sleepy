@@ -1,3 +1,6 @@
+Changes in VERSION 0.9.36
+  Fixed a bug in the pagination endpoints
+
 Changes in VERSION 0.9.35
   Replaced the ambitious Paginate decorator
   with a more modest AttachPaginationLinks decorator
