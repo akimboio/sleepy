@@ -8,4 +8,6 @@ dependencies:
 
 test:
   override:
+    - ./test_project/env/bin/pip install pyflakes
+    - ./test_project/env/bin/pyflakes sleepy
     - cd test_project && ./env/bin/python manage.py test
