@@ -15,16 +15,12 @@ __author__ = "Adam Haney <adam.haney@akimbo.io>"
 __license__ = "Copyright (c) 2011 akimbo, LLC"
 
 # Universe imports
-import json
-import urlparse
-import copy
 
 # Thirdparty imports
 from django.utils.decorators import wraps
 
 # Akimbo imports
-from sleepy.responses import api_out, api_error
-from sleepy.helpers import value_for_keypath
+from sleepy.responses import api_error
 
 
 def RequiresParameters(params):
