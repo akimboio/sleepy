@@ -1,3 +1,7 @@
+
+Changes in VERSION 1.0
+  Upgraded to Django 1.5
+
 Changes in VERSION 0.9.36
   Fixed a bug in the pagination endpoints
 

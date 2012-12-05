@@ -1,4 +1,4 @@
 # Public packages
-Django==1.4
+https://github.com/django/django/archive/1.5a1.tar.gz
 gitpython==0.3.2.RC1
 datadiff
