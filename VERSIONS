@@ -1,5 +1,21 @@
+
 Changes in VERSION 1.0
   Upgraded to Django 1.5
+
+Changes in VERSION 0.9.36
+  Fixed a bug in the pagination endpoints
+
+Changes in VERSION 0.9.35
+  Replaced the ambitious Paginate decorator
+  with a more modest AttachPaginationLinks decorator
+
+Changes in VERSION 0.9.34
+  Added more flexible parameter parsing
+  to the Paginate decorator
+
+Changes in VERSION 0.9.33
+  Replaced the OnlyNewer decorator with
+  a Paginate decorator.
 
 Changes in VERSION 0.9.32
   Better handling of PUT data

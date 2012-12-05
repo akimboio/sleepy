@@ -4,7 +4,10 @@ dependencies:
     - ./test_project/env/bin/easy_install -U distribute
     - ./test_project/env/bin/python setup.py install
     - ./test_project/env/bin/pip install django==1.4
+    - ./test_project/env/bin/pip install datadiff
 
 test:
   override:
+    - ./test_project/env/bin/pip install pyflakes
+    - ./test_project/env/bin/pyflakes sleepy
     - cd test_project && ./env/bin/python manage.py test

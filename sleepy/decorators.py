@@ -14,12 +14,13 @@ tasks such as tranformation, validation, or authentication.
 __author__ = "Adam Haney <adam.haney@akimbo.io>"
 __license__ = "Copyright (c) 2011 akimbo, LLC"
 
-import json
+# Universe imports
 
+# Thirdparty imports
 from django.utils.decorators import wraps
 
-from sleepy.responses import api_out, api_error
-from sleepy.helpers import find, value_for_keypath, set_value_for_keypath
+# Akimbo imports
+from sleepy.responses import api_error
 
 
 def RequiresParameters(params):
@@ -135,60 +136,6 @@ def ParameterTransform(param, func):
                         )
             return fn(self, request, *args, **kwargs)
         return _transform
-    return _wrap
-
-
-def OnlyNewer(element_key, keypath="data.stories"):
-    def _wrap(fn):
-        def _only_newer_check(self, request, *args, **kwargs):
-            if "If-Range" in request.META:
-                newest_id = request.META["If-Range"]
-            elif "_if_range" in request.REQUEST:
-                newest_id = request.REQUEST["_if_range"]
-            else:
-                return fn(self, request, *args, **kwargs)
-
-            # Force newest_id to be a string
-            newest_id = str(newest_id)
-
-            # Call the underlying function and get the response
-            response = fn(self, request, *args, **kwargs)
-
-            # Convert to JSON
-            response = json.loads(response.content)
-
-            # Grab the full list of elements out of the response
-            if "error" in response:
-                return api_error(
-                    response["error"]["message"],
-                    error_type=response["error"]["type"])
-
-            elements = value_for_keypath(response, keypath)
-
-            meta_info = {
-                k: v
-                for k, v in response.items()
-                if k != "data"
-                }
-
-            # Get the index of the element which is the "newest"
-            # element (newest) is passed in, in the list so we
-            # can slice the list and only return elements newer
-            # than that
-            idx = find(
-                newest_id,
-                [
-                    str(elm[element_key])
-                    for elm
-                    in elements
-                    ]
-                )[0]
-
-            set_value_for_keypath(response, keypath, elements[:idx])
-
-            return api_out(response["data"], meta_info)
-
-        return _only_newer_check
     return _wrap
 
 
