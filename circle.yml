@@ -3,7 +3,7 @@ dependencies:
     - virtualenv test_project/env
     - ./test_project/env/bin/easy_install -U distribute
     - ./test_project/env/bin/python setup.py install
-    - ./test_project/env/bin/pip install django==1.4
+    - ./test_project/env/bin/pip install https://github.com/django/django/archive/1.5b2.zip
     - ./test_project/env/bin/pip install datadiff
 
 test:
