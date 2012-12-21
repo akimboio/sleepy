@@ -1,3 +1,6 @@
+Changes in VERSION 1.0.1
+  Removed explicit Django requirement
+  Added Django 1.5b2 to circle.yml
 
 Changes in VERSION 1.0
   Upgraded to Django 1.5
