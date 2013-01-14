@@ -29,4 +29,4 @@ Getting Help
 -----------
 
 Adam Haney is the creator of Sleepy. He can be contacted at
-adam.haney@retickr.com 
+adam.haney@akimbo.io 

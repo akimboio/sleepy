@@ -14,11 +14,14 @@ tasks such as tranformation, validation, or authentication.
 __author__ = "Adam Haney <adam.haney@akimbo.io>"
 __license__ = "Copyright (c) 2011 akimbo, LLC"
 
-import json
+# Universe imports
 
+# Thirdparty imports
 from django.utils.decorators import wraps
 
-from sleepy.responses import api_out, api_error
+# Akimbo imports
+from sleepy.responses import api_error
+
 
 def RequiresParameters(params):
     """
@@ -28,7 +31,7 @@ def RequiresParameters(params):
     an error and bails out
     """
     def _wrap(fn):
-        def _check(self, request, *args, **kwargs):
+        def _requires_parameters_check(self, request, *args, **kwargs):
             if set(params) <= set(request.REQUEST):
                 return fn(self, request, *args, **kwargs)
             else:
@@ -39,7 +42,7 @@ def RequiresParameters(params):
                         set(params) - set(request.REQUEST)
                         )
                     )
-        return _check
+        return _requires_parameters_check
     return _wrap
 
 
@@ -57,7 +60,7 @@ def RequiresUrlAttribute(param):
     doing that which hopefully eliminates the length of methods
     """
     def _wrap(fn):
-        def _check(self, request, *args, **kwargs):
+        def _requires_url_attribute_check(self, request, *args, **kwargs):
             if param in kwargs:
                 return fn(self, request, *args, **kwargs)
             else:
@@ -68,13 +71,13 @@ def RequiresUrlAttribute(param):
                         param
                         )
                     )
-        return _check
+        return _requires_url_attribute_check
     return _wrap
 
 
 def ParameterAssert(param, func, description):
     def _wrap(fn):
-        def _check(self, request, *args, **kwargs):
+        def _parameter_assert_check(self, request, *args, **kwargs):
             if param in kwargs and not func(kwargs[param]):
                 return api_error(
                     "{0} {1}".format(param, description),
@@ -82,13 +85,13 @@ def ParameterAssert(param, func, description):
                     )
             else:
                 return fn(self, request, *args, **kwargs)
-        return _check
+        return _parameter_assert_check
     return _wrap
 
 
 def ParameterType(**types):
     def _wrap(fn):
-        def _check(self, request, *args, **kwargs):
+        def _parameter_type_check(self, request, *args, **kwargs):
             for param, type_ in types.items():
                 try:
                     kwargs[param] = type_(kwargs[param])
@@ -116,7 +119,7 @@ def ParameterType(**types):
                         )
 
             return fn(self, request, *args, **kwargs)
-        return _check
+        return _parameter_type_check
     return _wrap
 
 
@@ -136,55 +139,6 @@ def ParameterTransform(param, func):
     return _wrap
 
 
-def OnlyNewer(
-    get_identifier_func,
-    get_elements_func=None,
-    build_partial_response=None):
-    def _wrap(fn):
-        def _check(self, request, *args, **kwargs):
-
-            def find(needle, seq):
-                """
-                Finds the index of the 'needle' in a sequence,
-                if the needle is not found the index is assumed to
-                be the length of the sequence.
-                """
-                for ii, elm in enumerate(seq):
-                    if elm == needle:
-                        return ii, elm
-                    return len(seq), seq[:-1]
-
-            if "If-Range" in request.META:
-                newest_id = request.META["If-Range"]
-            elif "_if_range" in request.REQUEST:
-                newest_id = request.REQUEST["_if_range"]
-            else:
-                return fn(self, request, *args, **kwargs)
-
-            # If we dont' override the way we handle responses
-            # assume they're the normal json responses with data
-            # as one of the top elements, there is a weird scoping
-            # issue that occurs here which is why we shuffle variables
-            # around like this.
-            get_elements = get_elements_func
-            if get_elements_func == None:
-                get_elements = lambda resp: json.loads(resp)["data"]
-
-            build_partial = build_partial_response
-            if not build_partial_response:
-                build_partial = lambda elements: api_out(elements)
-
-            response = fn(self, request, *args, **kwargs)
-            elements = get_elements(response.content)
-            idx = find(newest_id,
-                    [get_identifier_func(elm) for elm in elements])
-            elements = elements[:idx[0]]
-            return build_partial(elements)
-
-        return _check
-    return _wrap
-
-
 def AbsolutePermalink(func, protocol="https://"):
     from django.core.urlresolvers import reverse
     from django.contrib.sites.models import Site
@@ -197,3 +151,7 @@ def AbsolutePermalink(func, protocol="https://"):
         return u"{0}{1}{2}".format(protocol, domain, path)
     return inner
 
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()

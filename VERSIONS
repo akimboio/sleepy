@@ -1,3 +1,53 @@
+Changes in VERSION 1.0.1
+  Removed explicit Django requirement
+  Added Django 1.5b2 to circle.yml
+
+Changes in VERSION 1.0
+  Upgraded to Django 1.5
+
+Changes in VERSION 0.9.36
+  Fixed a bug in the pagination endpoints
+
+Changes in VERSION 0.9.35
+  Replaced the ambitious Paginate decorator
+  with a more modest AttachPaginationLinks decorator
+
+Changes in VERSION 0.9.34
+  Added more flexible parameter parsing
+  to the Paginate decorator
+
+Changes in VERSION 0.9.33
+  Replaced the OnlyNewer decorator with
+  a Paginate decorator.
+
+Changes in VERSION 0.9.32
+  Better handling of PUT data
+
+Changes in VERSION 0.9.31
+  Renamed some functions nested within decorators to be more verbosely named
+  (this should ease in some profile-based optimizations)
+
+Changes in VERSION 0.9.30
+  Updated the OnlyNewer decorator to be a bit more flexible
+
+Changes in VERSION 0.9.29
+  Tweaked the output of the OnlyNewer decorator
+
+Changes in VERSION 0.9.28
+  Fixed a bug in the OnlyNewer decorator
+    (can now handle 'error' responses)
+  Updated the OnlyNewer decorator to handle
+    a change in the format of the stream call
+
+Changes in VERSION 0.9.27
+  Version bump
+
+Changes in VERSION 0.9.26
+  Tweak to the output formatting of OnlyNewer
+
+Changes in VERSION 0.9.25
+  Fixes for OnlyNew decorator
+
 Changes in Version 0.9.23
   Updated the ParameterTransform decorator to accomodate optional parameters
 
