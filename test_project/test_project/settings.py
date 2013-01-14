@@ -154,3 +154,12 @@ LOGGING = {
         },
     }
 }
+
+#XS_SHARING_ALLOWED_ORIGINS =
+
+#XS_SHARING_ALLOWED_METHODS =
+
+XS_SHARING_ALLOWED_HEADERS = [
+    'Content-type',
+    'Authorization',
+]
