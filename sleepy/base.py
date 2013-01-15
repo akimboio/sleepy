@@ -119,6 +119,10 @@ class Base:
                 ",".join(CORS_SHARING_ALLOWED_HEADERS)
             )
 
+            # Allow the client to cache the pre-flight response for up to a
+            # day
+            response['Access-Control-Max-Age'] = 86400
+
             return response
 
         if hasattr(self, request.method):
