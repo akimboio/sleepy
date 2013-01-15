@@ -4,11 +4,12 @@ from django.conf.urls import patterns, url
 # from django.contrib import admin
 # admin.autodiscover()
 
-from testapp.views import ReturnComplexListHandler
+from testapp.views import ReturnComplexListHandler, CORSTest
 
 urlpatterns = patterns(
     '',
     url(r'complex_test_list', ReturnComplexListHandler()),
+    url(r'cors_test', CORSTest()),
     # Examples:
     # url(r'^$', 'test_project.views.home', name='home'),
     # url(r'^test_project/', include('test_project.foo.urls')),
