@@ -39,6 +39,7 @@ XS_SHARING_ALLOWED_HEADERS = getattr(
     ['Content-type', 'Authorization']
 )
 
+
 class Base:
     """
     The base method all http handlers will inherit from. This functor
@@ -68,8 +69,8 @@ class Base:
 
     def __call__(self, request, *args, **kwargs):
         # Check if we're in read only mode
-        if (self.read_only == True
-            and request.method not in HTTP_READ_ONLY_METHODS):
+        if (self.read_only is True
+                and request.method not in HTTP_READ_ONLY_METHODS):
             return api_error("the API is in read only mode for maintenance")
 
         if request.method == "PUT":
@@ -87,7 +88,7 @@ class Base:
         response = django.http.HttpResponse()
 
         # See if we have an 'Origin:' header in the request. If so, this is
-        # a CORS (cross-orgin resource sharing) "preflight" request.
+        # a CORS (cross-orgin resource sharing) request.
         # See http://enable-cors.org/
         origin_is_allowed = False
         if 'HTTP_ORIGIN' in request.META:
@@ -101,8 +102,10 @@ class Base:
 
             origin_is_allowed = True
 
-        # Use introspection to handle OPTIONS requests
-        if request.method == 'OPTIONS':
+        # If we had an 'Origin:' header with a valid origin and the request
+        # used the OPTIONS method, then we'll add the proper Access-Control
+        # headers to the response.
+        if origin_is_allowed and request.method == 'OPTIONS':
 
             response['Access-Control-Allow-Origin'] = (
                 request.META['HTTP_ORIGIN']
@@ -138,6 +141,8 @@ class Base:
         if "suppress_response_codes" in request.REQUEST:
             response.status_code = 200
 
+        # If we are responding to a valid CORS request we must add the
+        # Access-Control-Allow-Origin header
         if origin_is_allowed:
             response['Access-Control-Allow-Origin'] = (
                 request.META['HTTP_ORIGIN']
