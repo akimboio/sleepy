@@ -2,12 +2,10 @@
 
 # Akimbo imports
 from sleepy.base import Base
-#from sleepy.decorators import AttachPaginationLinks
 from sleepy.responses import api_out
 
 
 class ReturnComplexListHandler(Base):
-    #@AttachPaginationLinks("update_time", keypath="data.stories")
     def GET(self, request, *args, **kwargs):
         """
         Return a lot of stories to test pagination.

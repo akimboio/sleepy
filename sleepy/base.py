@@ -21,21 +21,21 @@ from django.conf import settings
 
 from responses import api_error
 
-XS_SHARING_ALLOWED_ORIGINS = getattr(
+CORS_SHARING_ALLOWED_ORIGINS = getattr(
     settings,
-    'XS_SHARING_ALLOWED_ORIGINS',
+    'CORS_SHARING_ALLOWED_ORIGINS',
     ['*']
 )
 
-XS_SHARING_ALLOWED_METHODS = getattr(
+CORS_SHARING_ALLOWED_METHODS = getattr(
     settings,
-    'XS_SHARING_ALLOWED_METHODS',
+    'CORS_SHARING_ALLOWED_METHODS',
     ['GET', 'POST', 'PUT', 'DELETE']
 )
 
-XS_SHARING_ALLOWED_HEADERS = getattr(
+CORS_SHARING_ALLOWED_HEADERS = getattr(
     settings,
-    'XS_SHARING_ALLOWED_HEADERS',
+    'CORS_SHARING_ALLOWED_HEADERS',
     ['Content-type', 'Authorization']
 )
 
@@ -61,8 +61,8 @@ class Base:
         This helper method validates the url given to us in an 'Origin:'
         request header.
         """
-        if ('*' in XS_SHARING_ALLOWED_ORIGINS or
-                origin in XS_SHARING_ALLOWED_ORIGINS):
+        if ('*' in CORS_SHARING_ALLOWED_ORIGINS or
+                origin in CORS_SHARING_ALLOWED_ORIGINS):
             return True
 
         return False
@@ -112,11 +112,11 @@ class Base:
             )
 
             response['Access-Control-Allow-Methods'] = (
-                ",".join(XS_SHARING_ALLOWED_METHODS)
+                ",".join(CORS_SHARING_ALLOWED_METHODS)
             )
 
             response['Access-Control-Allow-Headers'] = (
-                ",".join(XS_SHARING_ALLOWED_HEADERS)
+                ",".join(CORS_SHARING_ALLOWED_HEADERS)
             )
 
             return response
