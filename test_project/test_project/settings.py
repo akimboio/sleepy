@@ -155,11 +155,12 @@ LOGGING = {
     }
 }
 
-#CORS_SHARING_ALLOWED_ORIGINS =
+CORS_SHARING_ALLOWED_ORIGINS = ['*']
 
 #CORS_SHARING_ALLOWED_METHODS =
 
 CORS_SHARING_ALLOWED_HEADERS = [
     'Content-type',
     'Authorization',
+    'X-Requested-With'
 ]
