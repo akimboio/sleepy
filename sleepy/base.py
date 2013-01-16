@@ -150,7 +150,6 @@ class Base:
         # If we are responding to a valid CORS request we must add the
         # Access-Control-Allow-Origin header
         if origin_is_allowed:
-            print 'woo'
             response['Access-Control-Allow-Origin'] = (
                 request.META['HTTP_ORIGIN']
             )
