@@ -119,8 +119,10 @@ class Base:
                 ",".join(CORS_SHARING_ALLOWED_HEADERS)
             )
 
-            # Allow the client to cache the pre-flight response for up to a
-            # day
+            # Allows cross-origin cookie access
+            response['Access-Control-Allow-Credentials'] = 'true'
+
+            # Allow the client to cache the pre-flight response for up to a day
             response['Access-Control-Max-Age'] = 86400
 
             return response
@@ -151,5 +153,6 @@ class Base:
             response['Access-Control-Allow-Origin'] = (
                 request.META['HTTP_ORIGIN']
             )
+            response['Access-Control-Allow-Credentials'] = 'true'
 
         return response
