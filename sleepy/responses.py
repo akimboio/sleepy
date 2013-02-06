@@ -53,6 +53,16 @@ def api_out(
     return api_response
 
 
+def queryset_out(queryset, *args, **kwargs):
+    """
+    Takes an unevaluated queryset and calls .all() on it, then it
+    calls the .as_dict method (the method that sleepy assumes will be
+    used to explain how to deserialize this model on each item in the
+    queryset
+    """
+    return api_out([item.as_dict for item in queryset.all()], *args, **kwargs)
+
+
 def blob_out(data, content_type, headers=None):
     """
     blob_out takes a bytestring with blob content
