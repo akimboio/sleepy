@@ -1,6 +1,19 @@
+
+Changes in VERSION 1.2
+  * Added queryset_out response to eliminate duplicate code that
+    serialized querysets into lists of dictionary objects.
+
+Changes in VERSION 1.1.1
+  * Added Access-Control-Allow-Credentials header to CORS responses
+  * Added Access-Control-Max-Age header so that client can cache the CORS
+    preflight response
+
 Changes in VERSION 1.1
-  Added queryset_out response to eliminate duplicate code that
-  serialized querysets into lists of dictionary objects.
+  Added support for cross-origin resource sharing
+
+Changes in VERSION 1.0.1
+  Removed explicit Django requirement
+  Added Django 1.5b2 to circle.yml
 
 Changes in VERSION 1.0
   Upgraded to Django 1.5

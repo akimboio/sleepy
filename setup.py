@@ -15,9 +15,9 @@ os.system("pip install -r requirements.txt")
 
 setup(
     name="sleepy",
-    version="0.9.36",
+    version="1.1.1",
     author="Adam Haney",
-    author_email="adam.haney@retickr.com",
+    author_email="adam.haney@akimbo.io",
     description=("""A RESTful library that is used at retickr on top"""\
                     """of Django we use it for a few apis internally."""),
     license="Closed",
@@ -28,10 +28,10 @@ setup(
     dependency_links = [],
     install_requires=[
         "gitpython==0.3.2.RC1"
-        ],
+    ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Topic :: Framework",
         "License :: OSI Approved :: Closed",
-        ]
+    ]
 )
