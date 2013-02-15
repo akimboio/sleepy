@@ -132,7 +132,7 @@ class Base:
 
         # Use introspection to handle HEAD requests
         elif request.method == 'HEAD' and hasattr(self, 'GET'):
-            response = self.GET(request)
+            response = self.GET(request, *args, **kwargs)
             response.content = ""
 
         else:
