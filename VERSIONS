@@ -1,3 +1,6 @@
+Changes in VERSION 1.2.4
+  * Fix HEAD requests
+
 Changes in VERSION 1.2.3
   * Added queryset_out to repsonses (merged in)
 
