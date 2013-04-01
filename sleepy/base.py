@@ -130,6 +130,15 @@ class Base:
         if hasattr(self, request.method):
             response = getattr(self, request.method)(request, *args, **kwargs)
 
+            # Explicitly type check here because type errors further
+            # down are harder to diagnose
+            if type(response) is None:
+                raise TypeError(
+                    "{0} returned None, should have returned a response object".format(
+                        request.method
+                    )
+                )
+
         # Use introspection to handle HEAD requests
         elif request.method == 'HEAD' and hasattr(self, 'GET'):
             response = self.GET(request, *args, **kwargs)
@@ -150,9 +159,7 @@ class Base:
         # If we are responding to a valid CORS request we must add the
         # Access-Control-Allow-Origin header
         if origin_is_allowed:
-            response['Access-Control-Allow-Origin'] = (
-                request.META['HTTP_ORIGIN']
-            )
+            response['Access-Control-Allow-Origin'] = request.META['HTTP_ORIGIN']
             response['Access-Control-Allow-Credentials'] = 'true'
 
         return response
