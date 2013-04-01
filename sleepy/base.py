@@ -68,6 +68,10 @@ class Base:
         return False
 
     def __call__(self, request, *args, **kwargs):
+        # Add the request user to the class, this allows certain django decorators to work
+        if hasattr(request, 'user'):
+            self.user = request.user
+            
         # Check if we're in read only mode
         if (self.read_only is True
                 and request.method not in HTTP_READ_ONLY_METHODS):
