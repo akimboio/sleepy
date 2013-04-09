@@ -8,6 +8,8 @@ idioms. Originally created at akimbo.
 :contact: adam.haney@akimbo.io
 :license: (c) 2013 Akimbo
 """
+import json
+from django.shortcuts import render
 
 __author__ = "Adam Haney"
 __license__ = "Copyright (c) 2013 Akimbo"
@@ -18,6 +20,7 @@ HTTP_METHODS = HTTP_READ_ONLY_METHODS + ['POST', 'PUT', 'DELETE']
 import django.http
 
 from django.conf import settings
+from django.template import Context, Template
 
 from responses import api_error
 
@@ -71,7 +74,7 @@ class Base:
         # Add the request user to the class, this allows certain django decorators to work
         if hasattr(request, 'user'):
             self.user = request.user
-            
+
         # Check if we're in read only mode
         if (self.read_only is True
                 and request.method not in HTTP_READ_ONLY_METHODS):
@@ -166,4 +169,13 @@ class Base:
             response['Access-Control-Allow-Origin'] = request.META['HTTP_ORIGIN']
             response['Access-Control-Allow-Credentials'] = 'true'
 
+        # At this point if we have a json response and a param of format with the value of html
+        # Convert the response to an html response with the content in the body of the page
+        if request.REQUEST.get("format") == "html" and response['Content-Type'] == "application/json":
+            json_formatted = json.dumps(json.loads(response.content), indent=4)
+            response = django.http.HttpResponse("<html><body><pre>{0}</pre></body></html>".format(
+                json_formatted,
+            ))
+
+        # Return the response
         return response
