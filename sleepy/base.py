@@ -8,8 +8,7 @@ idioms. Originally created at akimbo.
 :contact: adam.haney@akimbo.io
 :license: (c) 2013 Akimbo
 """
-import json
-from django.shortcuts import render
+
 
 __author__ = "Adam Haney"
 __license__ = "Copyright (c) 2013 Akimbo"
@@ -17,11 +16,9 @@ __license__ = "Copyright (c) 2013 Akimbo"
 HTTP_READ_ONLY_METHODS = ['GET', 'HEAD', 'OPTIONS']
 HTTP_METHODS = HTTP_READ_ONLY_METHODS + ['POST', 'PUT', 'DELETE']
 
+import json
 import django.http
-
 from django.conf import settings
-from django.template import Context, Template
-
 from responses import api_error
 
 CORS_SHARING_ALLOWED_ORIGINS = getattr(
