@@ -15,9 +15,12 @@ __author__ = "Adam Haney <adam.haney@akimbo.io>"
 __license__ = "Copyright (c) 2011 akimbo, LLC"
 
 # Universe imports
+import hashlib
 
 # Thirdparty imports
 from django.utils.decorators import wraps
+from django.http import HttpRequest
+from django.core.cache import cache
 
 # Akimbo imports
 from sleepy.responses import api_error
@@ -151,6 +154,45 @@ def AbsolutePermalink(func, protocol="https://"):
         return u"{0}{1}{2}".format(protocol, domain, path)
     return inner
 
+
+def CacheResponse(duration):
+    def _wrap(fn):
+        def _cacher(*args, **kwargs):
+            print duration
+            # See if we can find the http request in the args
+            request = None
+            for arg in args:
+                if(isinstance(arg, HttpRequest)):
+                    request = arg
+                    break
+
+            # If we didnt find the request just run the original
+            if request is None:
+                return fn(*args, **kwargs)
+
+            # Create the cache key
+            request_keys = request.REQUEST.keys()
+            request_keys.sort()
+            cache_key_string = request.path.strip("/")
+            for key in request_keys:
+                cache_key_string += "{0}={1}".format(key, request.REQUEST[key])
+            md5 = hashlib.md5()
+            md5.update(cache_key_string)
+            cache_key = md5.hexdigest()
+
+            # Check if the cache key exists
+            if cache.get(cache_key) is not None:
+                return cache.get(cache_key)
+
+            # Cache the response
+            response = fn(*args, **kwargs)
+            cache.set(cache_key, response, duration)
+
+            # Return the response
+            return response
+
+        return _cacher
+    return _wrap
 
 if __name__ == '__main__':
     import doctest
