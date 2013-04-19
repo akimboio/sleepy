@@ -15,7 +15,7 @@ os.system("pip install -r requirements.txt")
 
 setup(
     name="sleepy",
-    version="1.2.7",
+    version="1.2.8",
     author="Adam Haney",
     author_email="adam.haney@akimbo.io",
     description=("""A RESTful library that is used at retickr on top"""\
