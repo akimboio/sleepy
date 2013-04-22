@@ -155,10 +155,9 @@ def AbsolutePermalink(func, protocol="https://"):
     return inner
 
 
-def CacheResponse(duration):
+def CacheResponse(duration, include_user=False):
     def _wrap(fn):
         def _cacher(*args, **kwargs):
-            print duration
             # See if we can find the http request in the args
             request = None
             for arg in args:
@@ -177,6 +176,11 @@ def CacheResponse(duration):
             for key in request_keys:
                 cache_key_string += "{0}={1}".format(key, request.REQUEST[key])
             md5 = hashlib.md5()
+
+            # Include the user if we need to
+            if include_user and not request.user.is_anonymous():
+                cache_key_string += "{0}={1}".format("_user", request.user.pk)
+
             md5.update(cache_key_string)
             cache_key = md5.hexdigest()
 
