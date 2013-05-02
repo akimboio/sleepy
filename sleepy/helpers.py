@@ -76,7 +76,8 @@ def unexpected_error(request):
                     }
                 }
             ),
-        content_type="application/json"
+        content_type="application/json",
+        status_code=500
         )
 
 
