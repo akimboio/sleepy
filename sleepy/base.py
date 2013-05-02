@@ -9,16 +9,16 @@ idioms. Originally created at akimbo.
 :license: (c) 2013 Akimbo
 """
 
+
 __author__ = "Adam Haney"
 __license__ = "Copyright (c) 2013 Akimbo"
 
 HTTP_READ_ONLY_METHODS = ['GET', 'HEAD', 'OPTIONS']
 HTTP_METHODS = HTTP_READ_ONLY_METHODS + ['POST', 'PUT', 'DELETE']
 
+import json
 import django.http
-
 from django.conf import settings
-
 from responses import api_error
 
 CORS_SHARING_ALLOWED_ORIGINS = getattr(
@@ -68,6 +68,10 @@ class Base:
         return False
 
     def __call__(self, request, *args, **kwargs):
+        # Add the request user to the class, this allows certain django decorators to work
+        if hasattr(request, 'user'):
+            self.user = request.user
+
         # Check if we're in read only mode
         if (self.read_only is True
                 and request.method not in HTTP_READ_ONLY_METHODS):
@@ -162,4 +166,13 @@ class Base:
             response['Access-Control-Allow-Origin'] = request.META['HTTP_ORIGIN']
             response['Access-Control-Allow-Credentials'] = 'true'
 
+        # At this point if we have a json response and a param of format with the value of html
+        # Convert the response to an html response with the content in the body of the page
+        if request.REQUEST.get("format") == "html" and response['Content-Type'] == "application/json":
+            json_formatted = json.dumps(json.loads(response.content), indent=4)
+            response = django.http.HttpResponse("<html><body><pre>{0}</pre></body></html>".format(
+                json_formatted,
+            ))
+
+        # Return the response
         return response
