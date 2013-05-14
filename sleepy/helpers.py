@@ -67,7 +67,7 @@ def unexpected_error(request):
     this to conveniently override the server error handler
     to output JSON
     """
-    return HttpResponse(
+    response = HttpResponse(
         json.dumps(
             {
                 'error': {
@@ -76,9 +76,10 @@ def unexpected_error(request):
                     }
                 }
             ),
-        content_type="application/json",
-        status_code=500
+        content_type="application/json"
         )
+    response.status_code = 500
+    return response
 
 
 def chunk_split(list, chunk_size):
